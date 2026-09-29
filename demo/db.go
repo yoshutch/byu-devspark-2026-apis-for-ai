@@ -1,6 +1,10 @@
 package main
 
-import "sync"
+import (
+	"database/sql"
+
+	_ "modernc.org/sqlite"
+)
 
 type appointment struct {
 	BYUID string `json:"byuId"`
@@ -9,21 +13,46 @@ type appointment struct {
 	Date  string `json:"date"`
 }
 
-// database keeps the storage details out of the HTTP handler. It can be
-// replaced with a file-backed database when a later demo needs persistence.
 type database struct {
-	mu           sync.Mutex
-	appointments []appointment
+	db *sql.DB
 }
 
-func newDatabase() *database {
-	return &database{}
+func newDatabase(path string) (*database, error) {
+	db, err := sql.Open("sqlite", path)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := db.Ping(); err != nil {
+		db.Close()
+		return nil, err
+	}
+
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS appointments (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			byu_id TEXT NOT NULL,
+			type TEXT NOT NULL,
+			time TEXT NOT NULL,
+			date TEXT NOT NULL
+		)
+	`)
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
+
+	return &database{db: db}, nil
+}
+
+func (db *database) close() error {
+	return db.db.Close()
 }
 
 func (db *database) save(appointment appointment) error {
-	db.mu.Lock()
-	defer db.mu.Unlock()
-
-	db.appointments = append(db.appointments, appointment)
-	return nil
+	_, err := db.db.Exec(`
+		INSERT INTO appointments (byu_id, type, time, date)
+		VALUES (?, ?, ?, ?)
+	`, appointment.BYUID, appointment.Type, appointment.Time, appointment.Date)
+	return err
 }

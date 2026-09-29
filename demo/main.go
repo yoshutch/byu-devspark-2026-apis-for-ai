@@ -37,7 +37,18 @@ func schedule(db *database) http.HandlerFunc {
 }
 
 func main() {
-	http.HandleFunc("/schedule", schedule(newDatabase()))
+	databasePath := os.Getenv("DB_PATH")
+	if databasePath == "" {
+		databasePath = "appointments.db"
+	}
+
+	db, err := newDatabase(databasePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.close()
+
+	http.HandleFunc("/schedule", schedule(db))
 
 	port := os.Getenv("PORT")
 	if port == "" {
