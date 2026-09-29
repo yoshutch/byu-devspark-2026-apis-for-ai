@@ -6,7 +6,7 @@
 > You’ll leave with practical ways to design APIs that are clearer, safer, and more reliable for every consumer.
 
 
-[**To the slides -->**](00.md)
+[**To the slides -->**](presentation/00.md)
 
 ## Demo Code
 A demo web server to simulate an API used in the demo of the presentation.

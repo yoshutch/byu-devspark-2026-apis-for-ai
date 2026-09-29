@@ -33,7 +33,7 @@ The demos total roughly 34 minutes. If the session is shorter, combine demos 2 a
 
 ### Slides
 
-Run after [03.md](../03.md), before [04.md](../04.md).
+Run after [03.md](../presentation/03.md), before [04.md](../presentation/04.md).
 
 ### Goal
 
@@ -74,7 +74,7 @@ Example response:
 
 ### Transition
 
-Return to [04.md](../04.md):
+Return to [04.md](../presentation/04.md):
 
 > The problem is not that the endpoint is impossible to call. The problem is that too much of the contract exists only in somebody’s head.
 
@@ -84,7 +84,7 @@ Return to [04.md](../04.md):
 
 ### Slides
 
-Run after [04.md](../04.md), before or while presenting [05.md](../05.md).
+Run after [04.md](../presentation/04.md), before or while presenting [05.md](../presentation/05.md).
 
 ### Goal
 
@@ -121,7 +121,7 @@ Do not add idempotency, conflict handling, authorization, or rate limits in this
 
 ### Transition
 
-Return to [05.md](../05.md), then ask:
+Return to [05.md](../presentation/05.md), then ask:
 
 > We have made the meaning clearer. Now who is allowed to perform this operation?
 
@@ -131,7 +131,7 @@ Return to [05.md](../05.md), then ask:
 
 ### Slides
 
-Run after [06.md](../06.md), before [07.md](../07.md).
+Run after [06.md](../presentation/06.md), before [07.md](../presentation/07.md).
 
 ### Goal
 
@@ -162,7 +162,7 @@ Show that documentation and explicit fields do not make an operation safe by the
 
 ### Transition
 
-Return to [07.md](../07.md):
+Return to [07.md](../presentation/07.md):
 
 > We now know who is allowed to call the endpoint, and we can explain what happened. But what if the response is lost after the appointment is created?
 
@@ -172,7 +172,7 @@ Return to [07.md](../07.md):
 
 ### Slides
 
-Run after [08.md](../08.md), before [09.md](../09.md).
+Run after [08.md](../presentation/08.md), before [09.md](../presentation/09.md).
 
 ### Goal
 
@@ -207,7 +207,7 @@ The server should create the appointment and then drop or delay the response.
 
 ### Transition
 
-Return to [09.md](../09.md), then ask:
+Return to [09.md](../presentation/09.md), then ask:
 
 > Idempotency protects one intended operation from duplication. What about two different clients competing for the same appointment?
 
@@ -217,7 +217,7 @@ Return to [09.md](../09.md), then ask:
 
 ### Slides
 
-Run after [10.md](../10.md), before [11.md](../11.md).
+Run after [10.md](../presentation/10.md), before [11.md](../presentation/11.md).
 
 ### Goal
 
@@ -242,7 +242,7 @@ Show that idempotency does not solve concurrent business conflicts.
 
 ### Transition
 
-Return to [11.md](../11.md), then ask:
+Return to [11.md](../presentation/11.md), then ask:
 
 > We can now handle competing requests. What happens if a client or agent sends hundreds of requests instead?
 
@@ -252,7 +252,7 @@ Return to [11.md](../11.md), then ask:
 
 ### Slides
 
-Run after [12.md](../12.md), before [13.md](../13.md).
+Run after [12.md](../presentation/12.md), before [13.md](../presentation/13.md).
 
 ### Goal
 
@@ -275,7 +275,7 @@ Show that an authorized client can still overload the API or the calendar servic
 
 ### Transition
 
-Return to [13.md](../13.md), then ask:
+Return to [13.md](../presentation/13.md), then ask:
 
 > We have made the API safer and more predictable. How does a new client discover these rules?
 
@@ -285,7 +285,7 @@ Return to [13.md](../13.md), then ask:
 
 ### Slides
 
-Run after [14.md](../14.md), before or while presenting [15.md](../15.md).
+Run after [14.md](../presentation/14.md), before or while presenting [15.md](../presentation/15.md).
 
 ### Goal
 
@@ -314,7 +314,7 @@ Do not claim that OpenAPI makes an agent deterministic. The point is that the ag
 
 ### Transition
 
-Return to [15.md](../15.md):
+Return to [15.md](../presentation/15.md):
 
 > The contract is only useful if consumers can find it and the implementation continues to honor it.
 
@@ -324,7 +324,7 @@ Return to [15.md](../15.md):
 
 ### Slides
 
-Run at the end of [16.md](../16.md), before [17.md](../17.md).
+Run at the end of [16.md](../presentation/16.md), before [17.md](../presentation/17.md).
 
 ### Goal
 
@@ -364,7 +364,7 @@ Show the original request beside the final request and ask:
 
 ### Transition
 
-Move to [17.md](../17.md) and use the checklist as the lasting takeaway.
+Move to [17.md](../presentation/17.md) and use the checklist as the lasting takeaway.
 
 ---
 
