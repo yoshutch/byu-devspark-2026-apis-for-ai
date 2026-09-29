@@ -1,0 +1,14 @@
+version: '3'
+
+tasks:
+  start:
+    desc: Start the demo API
+    dir: demo
+    cmds:
+      - go run .
+
+  clear-db:
+    desc: Clear the demo SQLite database
+    dir: demo
+    cmds:
+      - rm -f appointments.db

@@ -59,24 +59,37 @@ Example response:
 }
 ```
 
-### Steps
+### Call the API
 
-1. Call the endpoint with `curl` or Bruno.
-2. Point out that the server returns `200 OK`.
-3. Ask the audience what the response proves—and what it does not prove.
-4. Ask an AI agent to schedule an appointment using only the endpoint and its response.
-5. Record or display the agent's assumptions:
-   - which advisor it selected;
-   - which appointment type it inferred;
-   - which timezone it used;
-   - whether it considered the appointment confirmed;
-   - whether it retried after a timeout.
+```bash
+curl -X POST http://localhost:8080/schedule \
+  --header 'Content-Type: application/x-www-form-urlencoded' \
+  --data-urlencode 'date=tomorrow' \
+  --data-urlencode 'time=5pm'
+```
+
+### Suggested AI instructions
+
+Give the following basic developer instruction to an AI agent:
+
+```text
+Use the appointment API localhost:8080/schedule to schedule an advisor appointment for tomorrow at 4pm.
+```
+
+- What were the agent's assumptions?
+  - How did it know the format for the API call?
+  - Which adviser it selected
+  - which appointment type
+  - which timezone it used;
+  - whether it considered the appointment confirmed;
+  - whether it retried after a timeout.
 
 ### Transition
 
 Return to [04.md](../presentation/04.md):
 
-> The problem is not that the endpoint is impossible to call. The problem is that too much of the contract exists only in somebody’s head.
+> The problem is not that the endpoint is impossible to call.
+> The problem is that too much of the contract exists only in somebody’s head.
 
 ---
 
