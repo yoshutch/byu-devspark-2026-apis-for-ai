@@ -12,3 +12,9 @@ tasks:
     dir: demo
     cmds:
       - rm -f appointments.db
+
+  query-appointments:
+    desc: Query all appointments
+    dir: demo
+    cmds:
+      - sqlite3 appointments.db "SELECT * FROM appointments;"

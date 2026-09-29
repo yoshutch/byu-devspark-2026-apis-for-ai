@@ -7,10 +7,10 @@ import (
 )
 
 type appointment struct {
-	BYUID string `json:"byuId"`
-	Type  string `json:"type"`
-	Time  string `json:"time"`
-	Date  string `json:"date"`
+	StudentID       string `json:"student_id"`
+	AdvisorID       string `json:"advisor_id"`
+	AppointmentType string `json:"appointment_type"`
+	StartsAt        string `json:"starts_at"`
 }
 
 type database struct {
@@ -31,10 +31,10 @@ func newDatabase(path string) (*database, error) {
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS appointments (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			byu_id TEXT NOT NULL,
-			type TEXT NOT NULL,
-			time TEXT NOT NULL,
-			date TEXT NOT NULL
+			student_id TEXT NOT NULL,
+			advisor_id TEXT NOT NULL,
+			appointment_type TEXT NOT NULL,
+			starts_at TEXT NOT NULL
 		)
 	`)
 	if err != nil {
@@ -51,8 +51,8 @@ func (db *database) close() error {
 
 func (db *database) save(appointment appointment) error {
 	_, err := db.db.Exec(`
-		INSERT INTO appointments (byu_id, type, time, date)
+		INSERT INTO appointments (student_id, advisor_id, appointment_type, starts_at)
 		VALUES (?, ?, ?, ?)
-	`, appointment.BYUID, appointment.Type, appointment.Time, appointment.Date)
+	`, appointment.StudentID, appointment.AdvisorID, appointment.AppointmentType, appointment.StartsAt)
 	return err
 }

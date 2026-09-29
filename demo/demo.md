@@ -37,32 +37,56 @@ Run after [03.md](../presentation/03.md), before [04.md](../presentation/04.md).
 
 ### Goal
 
-Show that the API can be called even though the contract leaves important decisions to inference.
+Show that the API works, while leaving important decisions to inference.
 
-### Call the API
+### Presenter setup
 
 ```bash
-curl -X POST http://localhost:8080/schedule \
+git switch --detach demo-1
+task clear-db
+task start
+```
+
+### Steps
+
+```bash
+curl -i -X POST http://localhost:8080/schedule \
   --header 'Content-Type: application/x-www-form-urlencoded' \
   --data-urlencode 'date=tomorrow' \
   --data-urlencode 'time=5pm'
 ```
 
-### Suggested AI instructions
+Pause on the `200 OK` response. Ask:
 
-Give the following basic developer instruction to an AI agent:
+- What does this response prove?
+- What does it not tell us?
+- Who is the appointment for?
+- Which advisor and appointment type were selected?
+- Which timezone does `5pm` use?
+- Does `200 OK` mean the appointment is confirmed?
+
+### Ask the AI agent
+
+Open a scratch codex session (not in this directory).
+Give the agent only this basic instruction:
 
 ```text
-Use the appointment API localhost:8080/schedule to schedule an advisor appointment for tomorrow at 4pm.
+Use the appointment API at http://localhost:8080/schedule to schedule an advisor appointment for tomorrow at 5pm.
 ```
 
-- What were the agent's assumptions?
-  - How did it know the format for the API call?
-  - Which adviser it selected
-  - which appointment type
-  - which timezone it used;
-  - whether it considered the appointment confirmed;
-  - whether it retried after a timeout.
+Ask the agent to explain its assumptions after making the request. Capture:
+
+- how it knew the request format;
+- which advisor and appointment type it inferred;
+- which timezone it used;
+- whether it considered the appointment confirmed;
+- what it would do if the response timed out.
+
+View the recorded appointments in the database:
+
+```shell
+task query-appointments
+```
 
 ### Transition
 
@@ -83,34 +107,71 @@ Run after [04.md](../presentation/04.md), before or while presenting [05.md](../
 
 Improve the request’s domain meaning without solving every reliability or security problem yet.
 
-### Code change
+### Presenter setup
 
-Change the operation from a vague form request to an explicit resource-oriented JSON request:
-
-```http
-POST /advisement/appointments
-Content-Type: application/json
-
-{
-  "student_id": "123456789",
-  "advisor_id": "111111111",
-  "appointment_type": "academic_advising",
-  "starts_at": "2026-12-25T17:00:00-07:00"
-}
+```bash
+git switch --detach demo-2
+task clear-db
+task start
 ```
+
+### Major code changes
+
+- Change the route from `POST /schedule` to `POST /advisement/appointments`.
+- Replace form data with a JSON request body.
+- Use explicit fields: `student_id`, `advisor_id`, `appointment_type`, and `starts_at`.
+- Validate required fields and require `starts_at` to use RFC3339 format.
+- Reject unknown fields and extra JSON values.
+- Store the explicit fields in the appointments table.
 
 ### Steps
 
-1. Show the original handler or route.
-2. Rename the operation around the domain resource: `advisement/appointments`.
-3. Replace ambiguous form fields with explicit JSON fields.
-4. Add validation for required fields and the timestamp format.
-5. Call the new endpoint.
-6. Send one invalid request to show that the API rejects ambiguity instead of silently guessing.
+1. Show the old request from Demo 1. It no longer matches the API:
 
-### Do not solve yet
+   ```bash
+   curl -i -X POST http://localhost:8080/schedule \
+     --header 'Content-Type: application/x-www-form-urlencoded' \
+     --data-urlencode 'date=tomorrow' \
+     --data-urlencode 'time=5pm'
+   ```
 
-Do not add idempotency, conflict handling, authorization, or rate limits in this block. The next slides need those problems to remain visible.
+2. Send the new explicit request:
+
+   ```bash
+   curl -i -X POST http://localhost:8080/advisement/appointments \
+     --header 'Content-Type: application/json' \
+     --data '{
+       "student_id": "123456789",
+       "advisor_id": "111111111",
+       "appointment_type": "academic_advising",
+       "starts_at": "2026-09-08T17:00:00-07:00"
+     }'
+   ```
+
+3. Remove a required field. The API returns `400 Bad Request` instead of guessing:
+
+   ```bash
+   curl -i -X POST http://localhost:8080/advisement/appointments \
+     --header 'Content-Type: application/json' \
+     --data '{
+       "student_id": "123456789",
+       "appointment_type": "academic_advising",
+       "starts_at": "2026-09-08T17:00:00-07:00"
+     }'
+   ```
+
+4. Use an ambiguous timestamp. The API rejects it because it has no date or time zone:
+
+   ```bash
+   curl -i -X POST http://localhost:8080/advisement/appointments \
+     --header 'Content-Type: application/json' \
+     --data '{
+       "student_id": "123456789",
+       "advisor_id": "111111111",
+       "appointment_type": "academic_advising",
+       "starts_at": "tomorrow at 5pm"
+     }'
+   ```
 
 ### Transition
 
