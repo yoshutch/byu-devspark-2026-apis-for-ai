@@ -39,26 +39,6 @@ Run after [03.md](../presentation/03.md), before [04.md](../presentation/04.md).
 
 Show that the API can be called even though the contract leaves important decisions to inference.
 
-### Starting API
-
-```http
-POST /schedule
-Content-Type: application/x-www-form-urlencoded
-
-date=tomorrow&time=5pm
-```
-
-Example response:
-
-```json
-{
-  "byuId": "123456789",
-  "type": "advisor",
-  "time": "5pm",
-  "date": "tomorrow"
-}
-```
-
 ### Call the API
 
 ```bash

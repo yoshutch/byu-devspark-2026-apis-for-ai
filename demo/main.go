@@ -9,11 +9,6 @@ import (
 
 func schedule(db *database) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
 		if err := r.ParseForm(); err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
 			return
@@ -48,7 +43,8 @@ func main() {
 	}
 	defer db.close()
 
-	http.HandleFunc("/schedule", schedule(db))
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /schedule", schedule(db))
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -56,5 +52,5 @@ func main() {
 	}
 
 	log.Printf("demo API listening on http://localhost:%s", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	log.Fatal(http.ListenAndServe(":"+port, mux))
 }
