@@ -4,7 +4,8 @@ import (
 	"database/sql"
 	"errors"
 
-	_ "modernc.org/sqlite"
+	"modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 )
 
 type appointment struct {
@@ -69,6 +70,15 @@ func newDatabase(path string) (*database, error) {
 		return nil, err
 	}
 
+	_, err = db.Exec(`
+		CREATE UNIQUE INDEX IF NOT EXISTS appointments_advisor_slot
+		ON appointments (advisor_id, starts_at)
+	`)
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
+
 	return &database{db: db}, nil
 }
 
@@ -97,6 +107,14 @@ func (db *database) slotTaken(advisorID, startsAt string) (bool, error) {
 		WHERE advisor_id = ? AND starts_at = ?
 	`, advisorID, startsAt).Scan(&count)
 	return count > 0, err
+}
+
+func isUniqueConstraint(err error) bool {
+	var sqliteError *sqlite.Error
+	if !errors.As(err, &sqliteError) {
+		return false
+	}
+	return sqliteError.Code()&0xff == sqlite3.SQLITE_CONSTRAINT
 }
 
 func (db *database) findIdempotency(key string) (*idempotencyRecord, error) {

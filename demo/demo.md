@@ -434,7 +434,16 @@ Show that idempotency does not solve concurrent business conflicts.
 
 An advisor cannot have two appointments in the same time slot.
 
+### Major code changes
+
+- Add a database uniqueness rule for `(advisor_id, starts_at)`.
+- Keep the availability check for an early response.
+- Translate concurrent uniqueness violations into `409 Conflict`.
+- Return the conflict as `application/problem+json`.
+
 ### Presenter setup
+
+Use two terminals. In Terminal 1, check out the unsafe state and start the API:
 
 ```bash
 git checkout demo-5-start
@@ -442,7 +451,7 @@ task clear-db
 DEMO_SLOT_CHECK_DELAY=500ms task start
 ```
 
-Use the same request body for each test:
+In Terminal 2, define the request body once:
 
 ```bash
 APPOINTMENT='{
@@ -453,84 +462,71 @@ APPOINTMENT='{
 }'
 ```
 
-### Major code changes: unsafe version
+### Steps: failure
 
-There's a deliberate check-then-insert race:
-
-### Steps: show the conflict
-
-1. Send two requests concurrently:
+1. Run these two requests concurrently. The different idempotency keys
+   represent two different clients requesting the same slot:
 
    ```bash
    curl -sS -i -X POST http://localhost:8080/advisement/appointments \
      --header 'Authorization: Bearer demo-student' \
      --header 'Content-Type: application/json' \
      --header 'Idempotency-Key: demo-client-a' \
-     --data "$APPOINTMENT" &
+     --data "$APPOINTMENT" > /tmp/demo5-client-a.out &
 
    curl -sS -i -X POST http://localhost:8080/advisement/appointments \
      --header 'Authorization: Bearer demo-student' \
      --header 'Content-Type: application/json' \
      --header 'Idempotency-Key: demo-client-b' \
-     --data "$APPOINTMENT" &
+     --data "$APPOINTMENT" > /tmp/demo5-client-b.out &
 
    wait
+   cat /tmp/demo5-client-a.out
+   cat /tmp/demo5-client-b.out
    ```
 
-2. Query the database and show that both appointments were created:
+2. Show that both requests return `200 OK`.
+3. Query the database:
 
    ```bash
    task query-appointments
    ```
 
-3. Ask: Which request should win, and where should that rule be enforced?
+4. Show that two appointments were created for the same advisor and time. Ask:
 
-### Major code changes: fixed version
+   > Which request should win, and where should that rule be enforced?
 
-Create a database uniqueness rule for the business invariant:
+### Steps: fix
 
-```sql
-CREATE UNIQUE INDEX appointments_advisor_slot
-ON appointments (advisor_id, starts_at);
-```
-
-Keep the application-level availability check for a friendly early response,
-but let the database enforce the rule for concurrent requests. Translate the
-unique-constraint error into an actionable conflict response:
-
-```http
-409 Conflict
-Content-Type: application/problem+json
-
-{
-  "type": "https://example.edu/problems/appointment-slot-unavailable",
-  "title": "Appointment slot unavailable",
-  "status": 409,
-  "code": "APPOINTMENT_SLOT_UNAVAILABLE",
-  "detail": "The requested appointment slot is no longer available."
-}
-```
-
-### Steps: show the fix
-
-1. Check out the fixed Demo 5 code state and reset the database before starting:
+1. Stop the server in Terminal 1, then check out the fixed state:
 
    ```bash
    git checkout demo-5-fix
    task clear-db
-   task start
+   DEMO_SLOT_CHECK_DELAY=500ms task start
    ```
 
-2. Repeat the same two concurrent requests from above.
-
-3. Show that one request succeeds and the other returns `409 Conflict` with
+2. Run the same two `curl` commands again. This time, one request returns
+   `200 OK` and the other returns `409 Conflict` with
    `application/problem+json`.
 
-4. Highlight the problem `type`, `title`, `status`, `detail`, and API-specific
-   `code`.
+3. Show the response fields:
 
-5. Explain the safe client behavior: ask the user to choose another time or
-   offer available alternatives. Do not silently change the requested time.
+   - `type`: `appointment-slot-unavailable`;
+   - `title`: `Appointment slot unavailable`;
+   - `status`: `409`;
+   - `code`: `APPOINTMENT_SLOT_UNAVAILABLE`;
+   - `detail`: the requested slot is no longer available.
+
+4. Query the database again:
+
+   ```bash
+   task query-appointments
+   ```
+
+5. Show that only one appointment exists. Explain that the client should ask
+   the user to choose another time or offer available alternatives; it should
+   not silently change the requested appointment.
 
 ### Transition
 

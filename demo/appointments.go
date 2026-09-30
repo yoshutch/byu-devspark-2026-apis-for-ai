@@ -184,13 +184,18 @@ func createAppointment(db *database, config *demoConfig) http.HandlerFunc {
 		}
 		if taken {
 			auditAppointmentAttempt(r, caller, requestID, "rejected", "slot_unavailable", http.StatusConflict, "")
-			http.Error(w, "appointment slot is unavailable", http.StatusConflict)
+			writeSlotUnavailableProblem(w)
 			return
 		}
 		config.delayAfterSlotCheck()
 
 		id, err := db.save(newAppointment)
 		if err != nil {
+			if isUniqueConstraint(err) {
+				auditAppointmentAttempt(r, caller, requestID, "rejected", "slot_unavailable", http.StatusConflict, "")
+				writeSlotUnavailableProblem(w)
+				return
+			}
 			auditAppointmentAttempt(r, caller, requestID, "failed", "database_error", http.StatusInternalServerError, "")
 			http.Error(w, "could not save appointment", http.StatusInternalServerError)
 			return
@@ -230,6 +235,16 @@ func writeJSON(w http.ResponseWriter, status int, body []byte) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_, _ = w.Write(body)
+}
+
+func writeSlotUnavailableProblem(w http.ResponseWriter) {
+	writeProblem(w, http.StatusConflict, problemDetails{
+		Type:   "https://example.edu/problems/appointment-slot-unavailable",
+		Title:  "Appointment slot unavailable",
+		Status: http.StatusConflict,
+		Code:   "APPOINTMENT_SLOT_UNAVAILABLE",
+		Detail: "The requested appointment slot is no longer available.",
+	})
 }
 
 func auditAppointmentAttempt(r *http.Request, caller principal, requestID, outcome, reason string, status int, resourceID string) {
