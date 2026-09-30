@@ -201,6 +201,9 @@ Show that documentation and explicit fields do not make an operation safe by the
 - Log each attempt directly from the appointment handler.
 - Emit structured, human-readable audit events with Go `log/slog`.
 
+<!-- TODO: Remove X-Request-ID from these Demo 3 commands once the audit
+walkthrough no longer needs client-supplied correlation labels. -->
+
 The demo tokens are intentionally fake
 
 ### Presenter setup
@@ -672,22 +675,43 @@ Run after [14.md](../presentation/14.md), before or while presenting [15.md](../
 
 Show the difference between rules that exist in the implementation and rules that consumers can actually discover.
 
+### Presenter setup
+
+```bash
+git switch --detach demo-7
+task clear-db
+task start
+```
+
 ### Steps
 
-1. Show the endpoint without an OpenAPI document or with an incomplete specification.
-2. Ask what a generated client or AI agent can know from the available information.
-3. Add the operation to the OpenAPI specification.
-4. Include:
-   - operation identifier;
-   - request schema;
-   - required fields and enum values;
-   - examples;
-   - success and error responses;
-   - security requirements;
-   - idempotency behavior;
-   - rate-limit behavior.
-5. Validate the specification against the running API.
-6. Show the generated documentation or client view.
+1. Fetch the machine-readable contract:
+
+   ```bash
+   curl -i http://localhost:8080/openapi.json
+   ```
+
+   Point out the `3.1.0` document, version `1.0.0`, and the
+   `createAdvisementAppointment` operation. For a focused view of the operation:
+
+   ```bash
+   curl -s http://localhost:8080/openapi.json | jq '.paths["/advisement/appointments"].post'
+   ```
+
+   Show that the document now includes required fields, the
+   `academic_advising` enum, RFC3339 `date-time`, examples, success and error
+   responses, bearer authentication, `Idempotency-Key`, `Retry-After`, and
+   guidance for retries and conflicts.
+
+2. Show the Scalar-rendered human-readable view:
+
+   ```bash
+   curl -i http://localhost:8080/docs
+   ```
+
+   If a browser is available, open `http://localhost:8080/docs`. Scalar renders
+   the same `/openapi.json` document as an interactive reference, so the
+   operation details are not duplicated in handwritten HTML.
 
 ### Keep the claim modest
 

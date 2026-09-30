@@ -29,6 +29,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	registerProblemRoutes(mux)
+	registerAPIDocumentationRoutes(mux)
 	mux.HandleFunc("POST /advisement/appointments", createAppointment(db, config))
 
 	port := os.Getenv("PORT")

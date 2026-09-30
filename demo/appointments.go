@@ -303,6 +303,8 @@ func authenticate(r *http.Request) (principal, bool) {
 }
 
 func getRequestID(r *http.Request) string {
+	// TODO: Remove X-Request-ID support after Demo 3; it is only a presenter
+	// correlation aid and is not part of the final API contract.
 	if requestID := strings.TrimSpace(r.Header.Get("X-Request-ID")); requestID != "" {
 		return requestID
 	}
@@ -324,6 +326,9 @@ func validateAppointment(newAppointment appointment) error {
 	}
 	if strings.TrimSpace(newAppointment.AppointmentType) == "" {
 		return fmt.Errorf("appointment_type is required")
+	}
+	if newAppointment.AppointmentType != "academic_advising" {
+		return fmt.Errorf("appointment_type must be academic_advising")
 	}
 	if _, err := time.Parse(time.RFC3339, newAppointment.StartsAt); err != nil {
 		return fmt.Errorf("starts_at must be a valid RFC3339 timestamp")

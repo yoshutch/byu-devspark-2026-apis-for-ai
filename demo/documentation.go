@@ -1,9 +1,19 @@
 package main
 
 import (
+	_ "embed"
 	"encoding/json"
 	"net/http"
 )
+
+// Keep the discoverable contract next to the demo code so the server and the
+// presenter can use the exact same document.
+//
+//go:embed openapi.json
+var openAPISpec []byte
+
+//go:embed docs.html
+var docsHTML []byte
 
 type problemDocumentation struct {
 	Type        string `json:"type"`
@@ -47,6 +57,22 @@ func registerProblemRoutes(mux *http.ServeMux) {
 		Description: "The client has sent more requests than the API allows in the current time window.",
 		Resolution:  "Wait for the Retry-After duration before sending another request.",
 	}))
+}
+
+func registerAPIDocumentationRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("GET /openapi.json", openAPISpecHandler)
+	mux.HandleFunc("GET /docs", apiDocsHandler)
+}
+
+func openAPISpecHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/vnd.oai.openapi+json;version=3.1")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(openAPISpec)
+}
+
+func apiDocsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, _ = w.Write(docsHTML)
 }
 
 func problemDocumentationHandler(documentation problemDocumentation) http.HandlerFunc {
