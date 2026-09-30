@@ -735,35 +735,45 @@ Run at the end of [16.md](../presentation/16.md), before [17.md](../presentation
 
 Compare the original and updated API using the same appointment task.
 
-### Human client
+### Presenter setup
 
-Use `curl` or Bruno to:
+```bash
+task clear-db
+task start
+```
 
-1. Discover the documented operation.
-2. Submit an explicit appointment request.
-3. Include the required identity and idempotency information.
-4. Show the successful response.
-5. Retry the request and show that it does not create a duplicate.
-6. Inspect the audit event.
+Use the server terminal to watch the audit event and a scratch Codex session
+for the agent walkthrough.
 
 ### AI agent
 
-Give the agent access to the final API documentation and ask it to schedule an appointment.
-
-If the API returns `application/problem+json`, ask it to use the `type` URI for
-additional guidance when needed:
+Open a scratch Codex session, not in this directory. Give the agent the
+discoverable contract and the task:
 
 ```text
-If the API returns a problem-details error, read its type URI and use the documented resolution when deciding what to do next.
+Use the advisement appointment API at http://localhost:8080.
+Read the OpenAPI document at http://localhost:8080/openapi.json first.
+Schedule an academic advising appointment for student 123456789 with advisor
+111111111 on 2026-10-08 at 5:00 PM Mountain Time. Use an idempotency key.
+You may use the fake demo bearer token `demo-student` for authorization.
+Explain how you chose the request fields and how you would safely retry if the
+response timed out.
 ```
 
-Observe whether it can:
+Observe whether the agent can:
 
-- identify the required fields;
-- use the correct timestamp format;
-- provide or request the necessary authorization context;
-- respond appropriately to a conflict or rate limit;
-- avoid duplicating the appointment after a retry.
+- find `POST /advisement/appointments` in the OpenAPI document;
+- identify the required fields and `academic_advising` enum;
+- use the RFC3339 timestamp format;
+- provide the bearer token or explain that authorization context is required;
+- include an idempotency key;
+- distinguish a successful response from a replayed retry.
+
+Inspect the resulting appointment and audit event:
+
+```bash
+task query-appointments
+```
 
 ### Final comparison
 
