@@ -196,9 +196,10 @@ Show that documentation and explicit fields do not make an operation safe by the
 - Add simple bearer-token authentication for the local demo.
 - Return `401 Unauthorized` when credentials are missing or invalid.
 - Return `403 Forbidden` as Problem Details when the caller lacks permission.
+- Serve local documentation for the problem type URIs.
 - Allow `demo-student` to schedule only for student `123456789`.
 - Log each attempt directly from the appointment handler.
-- Emit structured JSON audit events with Go `log/slog`.
+- Emit structured, human-readable audit events with Go `log/slog`.
 
 The demo tokens are intentionally fake
 
@@ -248,6 +249,13 @@ APPOINTMENT='{
    Show the `application/problem+json` response and the audit event with
    `actor_id: user-999999999`, `reason: insufficient_permission`, and `status: 403`.
 
+   The `type` URI is also a local documentation endpoint. Show that an agent
+   can inspect it without needing access to an external documentation site:
+
+   ```bash
+   curl -i http://localhost:8080/problems/appointment-not-permitted
+   ```
+
 3. Use an authorized identity scheduling for itself. Expect success:
 
    ```bash
@@ -261,11 +269,11 @@ APPOINTMENT='{
    Show the response and the server log’s `AUDIT` event with the actor, client,
    appointment resource ID, `outcome: success`, and `status: 200`.
 
-4. Inspect the audit trail in the server terminal. Every attempt should be represented by a JSON `slog` record:
+4. Inspect the audit trail in the server terminal. Every attempt should be represented by a structured, human-readable `slog` record:
 
    ```text
-   {"level":"INFO","msg":"audit","event":"appointment.create", ... "outcome":"rejected", ...}
-   {"level":"INFO","msg":"audit","event":"appointment.create", ... "outcome":"success", ...}
+   time=... level=INFO msg=audit event=appointment.create ... outcome=rejected ...
+   time=... level=INFO msg=audit event=appointment.create ... outcome=success ...
    ```
 
 Point out that the audit event answers:
@@ -440,6 +448,7 @@ An advisor cannot have two appointments in the same time slot.
 - Keep the availability check for an early response.
 - Translate concurrent uniqueness violations into `409 Conflict`.
 - Return the conflict as `application/problem+json`.
+- Serve local documentation for the conflict problem type URI.
 
 ### Presenter setup
 
@@ -517,6 +526,13 @@ APPOINTMENT='{
    - `status`: `409`;
    - `code`: `APPOINTMENT_SLOT_UNAVAILABLE`;
    - `detail`: the requested slot is no longer available.
+
+   Follow the `type` URI to show the additional guidance available to an
+   agent:
+
+   ```bash
+   curl -i http://localhost:8080/problems/appointment-slot-unavailable
+   ```
 
 4. Query the database again:
 
@@ -632,6 +648,13 @@ Use `curl` or Bruno to:
 ### AI agent
 
 Give the agent access to the final API documentation and ask it to schedule an appointment.
+
+If the API returns `application/problem+json`, ask it to use the `type` URI for
+additional guidance when needed:
+
+```text
+If the API returns a problem-details error, read its type URI and use the documented resolution when deciding what to do next.
+```
 
 Observe whether it can:
 
