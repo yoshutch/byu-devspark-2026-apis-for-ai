@@ -9,6 +9,12 @@ import (
 func main() {
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, nil)))
 
+	config, err := newDemoConfig()
+	if err != nil {
+		slog.Error("invalid demo configuration", "error", err)
+		return
+	}
+
 	databasePath := os.Getenv("DB_PATH")
 	if databasePath == "" {
 		databasePath = "appointments.db"
@@ -22,7 +28,7 @@ func main() {
 	defer db.close()
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /advisement/appointments", createAppointment(db))
+	mux.HandleFunc("POST /advisement/appointments", createAppointment(db, config))
 
 	port := os.Getenv("PORT")
 	if port == "" {

@@ -1,12 +1,16 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -30,6 +34,11 @@ var demoPrincipals = map[string]principal{
 	},
 }
 
+type demoConfig struct {
+	timeoutAfterCreate time.Duration
+	timeoutOnce        sync.Once
+}
+
 type problemDetails struct {
 	Type   string `json:"type"`
 	Title  string `json:"title"`
@@ -38,7 +47,29 @@ type problemDetails struct {
 	Detail string `json:"detail"`
 }
 
-func createAppointment(db *database) http.HandlerFunc {
+func newDemoConfig() (*demoConfig, error) {
+	value := strings.TrimSpace(os.Getenv("DEMO_TIMEOUT_AFTER_CREATE"))
+	if value == "" {
+		return &demoConfig{}, nil
+	}
+
+	duration, err := time.ParseDuration(value)
+	if err != nil || duration <= 0 {
+		return nil, fmt.Errorf("DEMO_TIMEOUT_AFTER_CREATE must be a positive duration such as 3s")
+	}
+	return &demoConfig{timeoutAfterCreate: duration}, nil
+}
+
+func (config *demoConfig) delayAfterCreate() {
+	if config.timeoutAfterCreate <= 0 {
+		return
+	}
+	config.timeoutOnce.Do(func() {
+		time.Sleep(config.timeoutAfterCreate)
+	})
+}
+
+func createAppointment(db *database, config *demoConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		requestID := getRequestID(r)
 		caller, authenticated := authenticate(r)
@@ -101,6 +132,28 @@ func createAppointment(db *database) http.HandlerFunc {
 			return
 		}
 
+		idempotencyKey := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
+		requestHash := appointmentFingerprint(newAppointment)
+		if idempotencyKey != "" {
+			record, err := db.findIdempotency(idempotencyKey)
+			if err != nil {
+				auditAppointmentAttempt(r, caller, requestID, "failed", "idempotency_lookup_error", http.StatusInternalServerError, "")
+				http.Error(w, "could not read idempotency record", http.StatusInternalServerError)
+				return
+			}
+			if record != nil {
+				if record.RequestHash != requestHash {
+					auditAppointmentAttempt(r, caller, requestID, "rejected", "idempotency_key_reused", http.StatusConflict, record.ResourceID)
+					http.Error(w, "idempotency key was already used with different request data", http.StatusConflict)
+					return
+				}
+
+				auditAppointmentAttempt(r, caller, requestID, "replayed", "", record.StatusCode, record.ResourceID)
+				writeJSON(w, record.StatusCode, record.ResponseBody)
+				return
+			}
+		}
+
 		id, err := db.save(newAppointment)
 		if err != nil {
 			auditAppointmentAttempt(r, caller, requestID, "failed", "database_error", http.StatusInternalServerError, "")
@@ -109,11 +162,39 @@ func createAppointment(db *database) http.HandlerFunc {
 		}
 		newAppointment.ID = id
 		resourceID := fmt.Sprintf("appointment-%d", id)
-		auditAppointmentAttempt(r, caller, requestID, "success", "", http.StatusOK, resourceID)
+		responseBody, err := json.Marshal(newAppointment)
+		if err != nil {
+			auditAppointmentAttempt(r, caller, requestID, "failed", "response_encoding_error", http.StatusInternalServerError, resourceID)
+			http.Error(w, "could not encode appointment", http.StatusInternalServerError)
+			return
+		}
+		responseBody = append(responseBody, '\n')
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(newAppointment)
+		if idempotencyKey != "" {
+			if err := db.saveIdempotency(idempotencyKey, requestHash, responseBody, http.StatusOK, resourceID); err != nil {
+				auditAppointmentAttempt(r, caller, requestID, "failed", "idempotency_store_error", http.StatusInternalServerError, resourceID)
+				http.Error(w, "could not save idempotency record", http.StatusInternalServerError)
+				return
+			}
+		}
+
+		auditAppointmentAttempt(r, caller, requestID, "success", "", http.StatusOK, resourceID)
+		config.delayAfterCreate()
+
+		writeJSON(w, http.StatusOK, responseBody)
 	}
+}
+
+func appointmentFingerprint(newAppointment appointment) string {
+	encoded, _ := json.Marshal(newAppointment)
+	hash := sha256.Sum256(encoded)
+	return hex.EncodeToString(hash[:])
+}
+
+func writeJSON(w http.ResponseWriter, status int, body []byte) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_, _ = w.Write(body)
 }
 
 func auditAppointmentAttempt(r *http.Request, caller principal, requestID, outcome, reason string, status int, resourceID string) {

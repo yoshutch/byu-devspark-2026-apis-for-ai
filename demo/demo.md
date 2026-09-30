@@ -295,32 +295,122 @@ Run after [08.md](../presentation/08.md), before [09.md](../presentation/09.md).
 
 Show that a timeout creates uncertainty and that a retry can accidentally create duplicate business work.
 
-### Failure setup
+### Major code changes
 
-Add a predictable failure switch to the local API, such as:
+- Read `DEMO_TIMEOUT_AFTER_CREATE` from the server environment.
+- Delay only the first successful response after the appointment is saved.
 
-```text
-FAIL_AFTER_CREATE=true
+### Presenter setup
+
+Reset the database and start the server with a three-second, server-side response delay:
+
+```bash
+git switch --detach demo-4
+task clear-db
+DEMO_TIMEOUT_AFTER_CREATE=3s task start
 ```
 
-The server should create the appointment and then drop or delay the response.
+The timeout is configured on the server. The request itself looks normal.
 
-### Steps: failure
+Use the same request body for each test:
 
-1. Reset the application state.
-2. Send the appointment request.
-3. Make the server create the appointment but withhold the response.
-4. Show the client timing out.
-5. Retry the identical request.
-6. Inspect the appointments and show the duplicate.
+```bash
+APPOINTMENT='{
+  "student_id": "123456789",
+  "advisor_id": "111111111",
+  "appointment_type": "academic_advising",
+  "starts_at": "2026-10-08T17:00:00-07:00"
+}'
+```
 
-### Steps: fix
+### Steps: show the retry problem
 
-1. Add an `Idempotency-Key` header.
-2. Store the key with the request fingerprint and original result.
-3. Retry with the same key.
-4. Show that the original result is returned and no second appointment is created.
-5. Reuse the same key with different request data and show that the API rejects it.
+1. Send a normal request with a short client timeout and no idempotency key:
+
+   ```bash
+   curl --max-time 1 -i -X POST http://localhost:8080/advisement/appointments \
+     --header 'Authorization: Bearer demo-student' \
+     --header 'Content-Type: application/json' \
+     --data "$APPOINTMENT"
+   ```
+
+2. Explain that the client timed out, but the server already saved the appointment.
+   Wait for the three-second server delay to finish, then inspect the database:
+
+   ```bash
+   task query-appointments
+   ```
+
+3. Retry the identical request without an idempotency key:
+
+   ```bash
+   curl -i -X POST http://localhost:8080/advisement/appointments \
+     --header 'Authorization: Bearer demo-student' \
+     --header 'Content-Type: application/json' \
+     --data "$APPOINTMENT"
+   ```
+
+   Query the database again and show the duplicate appointment.
+
+### Major code changes
+
+- Accept an optional `Idempotency-Key` header.
+- Store the request fingerprint and original response in SQLite.
+- Replay the original response when the same key and request are retried.
+- Reject reuse of a key with different request data.
+
+### Steps: show the idempotency fix
+
+Restart the server so the one-time delay is available again:
+
+```bash
+task clear-db
+DEMO_TIMEOUT_AFTER_CREATE=3s task start
+```
+
+1. Add an `Idempotency-Key` to the first request:
+
+   ```bash
+   curl --max-time 1 -i -X POST http://localhost:8080/advisement/appointments \
+     --header 'Authorization: Bearer demo-student' \
+     --header 'Content-Type: application/json' \
+     --header 'Idempotency-Key: demo-retry-1' \
+     --data "$APPOINTMENT"
+   ```
+
+2. Retry with the same key and request data:
+
+   ```bash
+   curl -i -X POST http://localhost:8080/advisement/appointments \
+     --header 'Authorization: Bearer demo-student' \
+     --header 'Content-Type: application/json' \
+     --header 'Idempotency-Key: demo-retry-1' \
+     --data "$APPOINTMENT"
+   ```
+
+3. Query the database and show that only one appointment exists:
+
+   ```bash
+   task query-appointments
+   ```
+
+4. Reuse the same key with different request data. The API rejects the request:
+
+   ```bash
+   curl -i -X POST http://localhost:8080/advisement/appointments \
+     --header 'Authorization: Bearer demo-student' \
+     --header 'Content-Type: application/json' \
+     --header 'Idempotency-Key: demo-retry-1' \
+     --data '{
+       "student_id": "123456789",
+       "advisor_id": "111111111",
+       "appointment_type": "academic_advising",
+       "starts_at": "2026-10-08T18:00:00-07:00"
+     }'
+   ```
+
+Point out that the idempotency key does not make the request happen twice. It
+lets the server recognize that the retry is the same intended operation.
 
 ### Transition
 
