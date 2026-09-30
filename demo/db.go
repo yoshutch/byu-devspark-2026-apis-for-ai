@@ -7,6 +7,7 @@ import (
 )
 
 type appointment struct {
+	ID              int64  `json:"id,omitempty"`
 	StudentID       string `json:"student_id"`
 	AdvisorID       string `json:"advisor_id"`
 	AppointmentType string `json:"appointment_type"`
@@ -49,10 +50,15 @@ func (db *database) close() error {
 	return db.db.Close()
 }
 
-func (db *database) save(appointment appointment) error {
-	_, err := db.db.Exec(`
+func (db *database) save(appointment appointment) (int64, error) {
+	result, err := db.db.Exec(`
 		INSERT INTO appointments (student_id, advisor_id, appointment_type, starts_at)
 		VALUES (?, ?, ?, ?)
 	`, appointment.StudentID, appointment.AdvisorID, appointment.AppointmentType, appointment.StartsAt)
-	return err
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := result.LastInsertId()
+	return id, err
 }

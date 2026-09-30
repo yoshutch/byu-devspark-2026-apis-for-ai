@@ -144,7 +144,7 @@ task start
        "student_id": "123456789",
        "advisor_id": "111111111",
        "appointment_type": "academic_advising",
-       "starts_at": "2026-09-08T17:00:00-07:00"
+       "starts_at": "2026-10-08T17:00:00-07:00"
      }'
    ```
 
@@ -156,7 +156,7 @@ task start
      --data '{
        "student_id": "123456789",
        "appointment_type": "academic_advising",
-       "starts_at": "2026-09-08T17:00:00-07:00"
+       "starts_at": "2026-10-08T17:00:00-07:00"
      }'
    ```
 
@@ -191,28 +191,91 @@ Run after [06.md](../presentation/06.md), before [07.md](../presentation/07.md).
 
 Show that documentation and explicit fields do not make an operation safe by themselves.
 
-### Suggested test cases
+### Major code changes
 
-| Case | Expected result |
-| --- | --- |
-| No credentials | `401 Unauthorized` |
-| Authenticated user without permission | `403 Forbidden` with Problem Details |
-| Authorized user scheduling for themselves | Success |
-| Authorized service acting for a user | Success only with valid delegated context |
+- Add simple bearer-token authentication for the local demo.
+- Return `401 Unauthorized` when credentials are missing or invalid.
+- Return `403 Forbidden` as Problem Details when the caller lacks permission.
+- Allow `demo-student` to schedule only for student `123456789`.
+- Log each attempt directly from the appointment handler.
+- Emit structured JSON audit events with Go `log/slog`.
+
+The demo tokens are intentionally fake
+
+### Presenter setup
+
+```bash
+git switch --detach demo-3
+task clear-db
+task start
+```
+
+Use the same request body for each test:
+
+```bash
+APPOINTMENT='{
+  "student_id": "123456789",
+  "advisor_id": "111111111",
+  "appointment_type": "academic_advising",
+  "starts_at": "2026-10-08T17:00:00-07:00"
+}'
+```
 
 ### Steps
 
-1. Call the endpoint without credentials.
-2. Add credentials for an authenticated but unauthorized user.
-3. Show the `403` response and its machine-readable problem type.
-4. Call the endpoint with an authorized identity.
-5. Display the structured audit event.
-6. Point out the fields that answer:
-   - who acted;
-   - which client or agent acted;
-   - what operation was attempted;
-   - which resource was affected;
-   - what the outcome was.
+1. Call the endpoint without credentials. Expect `401 Unauthorized`:
+
+   ```bash
+   curl -i -X POST http://localhost:8080/advisement/appointments \
+     --header 'Content-Type: application/json' \
+     --header 'X-Request-ID: req-no-auth' \
+     --data "$APPOINTMENT"
+   ```
+
+   Point out that the audit event has no `actor_id` or `client_id` and records:
+   `outcome: rejected`, `reason: authentication_required`, `status: 401`.
+
+2. Use a valid identity without the required permission. Expect `403 Forbidden`:
+
+   ```bash
+   curl -i -X POST http://localhost:8080/advisement/appointments \
+     --header 'Authorization: Bearer demo-readonly' \
+     --header 'Content-Type: application/json' \
+     --header 'X-Request-ID: req-readonly' \
+     --data "$APPOINTMENT"
+   ```
+
+   Show the `application/problem+json` response and the audit event with
+   `actor_id: user-999999999`, `reason: insufficient_permission`, and `status: 403`.
+
+3. Use an authorized identity scheduling for itself. Expect success:
+
+   ```bash
+   curl -i -X POST http://localhost:8080/advisement/appointments \
+     --header 'Authorization: Bearer demo-student' \
+     --header 'Content-Type: application/json' \
+     --header 'X-Request-ID: req-student' \
+     --data "$APPOINTMENT"
+   ```
+
+   Show the response and the server log’s `AUDIT` event with the actor, client,
+   appointment resource ID, `outcome: success`, and `status: 200`.
+
+4. Inspect the audit trail in the server terminal. Every attempt should be represented by a JSON `slog` record:
+
+   ```text
+   {"level":"INFO","msg":"audit","event":"appointment.create", ... "outcome":"rejected", ...}
+   {"level":"INFO","msg":"audit","event":"appointment.create", ... "outcome":"success", ...}
+   ```
+
+Point out that the audit event answers:
+
+- who acted;
+- which client or agent acted;
+- what operation was attempted;
+- which resource was affected;
+- what the outcome was, including rejected attempts.
+
 
 ### Transition
 
