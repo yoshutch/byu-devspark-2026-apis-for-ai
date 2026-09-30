@@ -38,6 +38,7 @@ type demoConfig struct {
 	timeoutAfterCreate time.Duration
 	timeoutOnce        sync.Once
 	slotCheckDelay     time.Duration
+	rateLimiter        *rateLimiter
 }
 
 type problemDetails struct {
@@ -57,9 +58,20 @@ func newDemoConfig() (*demoConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+	rateLimit, err := parseRateLimit(os.Getenv("DEMO_RATE_LIMIT"))
+	if err != nil {
+		return nil, err
+	}
+	rateLimitWindow := defaultRateLimitWindow
+	if configuredWindow, err := demoDuration("DEMO_RATE_LIMIT_WINDOW"); err != nil {
+		return nil, err
+	} else if configuredWindow > 0 {
+		rateLimitWindow = configuredWindow
+	}
 	return &demoConfig{
 		timeoutAfterCreate: timeoutAfterCreate,
 		slotCheckDelay:     slotCheckDelay,
+		rateLimiter:        newRateLimiter(rateLimit, rateLimitWindow),
 	}, nil
 }
 
@@ -105,6 +117,15 @@ func createAppointment(db *database, config *demoConfig) http.HandlerFunc {
 				Detail: "Provide a valid bearer token.",
 			})
 			return
+		}
+
+		if config.rateLimiter != nil {
+			allowed, retryAfter := config.rateLimiter.allow(caller.ClientID, time.Now())
+			if !allowed {
+				auditAppointmentAttempt(r, caller, requestID, "rejected", "rate_limit_exceeded", http.StatusTooManyRequests, "")
+				writeRateLimitProblem(r, w, retryAfter)
+				return
+			}
 		}
 
 		if !caller.CanCreate {

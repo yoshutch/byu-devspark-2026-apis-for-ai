@@ -15,7 +15,6 @@ type problemDocumentation struct {
 }
 
 func registerProblemRoutes(mux *http.ServeMux) {
-	// TODO add some of these problem routes to earlier git commits
 	mux.HandleFunc("GET /problems/authentication-required", problemDocumentationHandler(problemDocumentation{
 		Type:        "/problems/authentication-required",
 		Title:       "Authentication required",
@@ -39,6 +38,14 @@ func registerProblemRoutes(mux *http.ServeMux) {
 		Code:        "APPOINTMENT_SLOT_UNAVAILABLE",
 		Description: "The advisor already has an appointment at the requested time.",
 		Resolution:  "Ask the user to choose another time.",
+	}))
+	mux.HandleFunc("GET /problems/rate-limit-exceeded", problemDocumentationHandler(problemDocumentation{
+		Type:        "/problems/rate-limit-exceeded",
+		Title:       "Rate limit exceeded",
+		Status:      http.StatusTooManyRequests,
+		Code:        "RATE_LIMIT_EXCEEDED",
+		Description: "The client has sent more requests than the API allows in the current time window.",
+		Resolution:  "Wait for the Retry-After duration before sending another request.",
 	}))
 }
 

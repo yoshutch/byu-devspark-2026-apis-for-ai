@@ -455,7 +455,7 @@ An advisor cannot have two appointments in the same time slot.
 Use two terminals. In Terminal 1, check out the unsafe state and start the API:
 
 ```bash
-git checkout demo-5-start
+git switch --detach demo-5-start
 task clear-db
 DEMO_SLOT_CHECK_DELAY=500ms task start
 ```
@@ -510,7 +510,7 @@ APPOINTMENT='{
 1. Stop the server in Terminal 1, then check out the fixed state:
 
    ```bash
-   git checkout demo-5-fix
+   git switch --detach demo-5-fix
    task clear-db
    DEMO_SLOT_CHECK_DELAY=500ms task start
    ```
@@ -562,20 +562,97 @@ Run after [12.md](../presentation/12.md), before [13.md](../presentation/13.md).
 
 Show that an authorized client can still overload the API or the calendar service behind it.
 
+### Major code changes
+
+- Add a small in-memory, per-client fixed-window rate limiter.
+- Configure the limit with `DEMO_RATE_LIMIT` and `DEMO_RATE_LIMIT_WINDOW`.
+- Return `429 Too Many Requests` with a `Retry-After` header.
+- Return the rate-limit failure as `application/problem+json`.
+- Audit rejected requests with the reason `rate_limit_exceeded`.
+
+### Presenter setup
+
+Use a fresh server for each half of the demo. The limiter is disabled when
+`DEMO_RATE_LIMIT` is not set.
+
+In Terminal 1, start the API without a rate limit:
+
+```bash
+git switch --detach demo-6
+task clear-db
+task start
+```
+
+Use Terminal 2 for the request loop in the steps below.
+
 ### Steps: failure
 
-1. Reset the API and calendar stub.
-2. Run a small request loop against the appointment endpoint.
-3. Display request counts and downstream calls.
-4. Show the system accepting more traffic than it should.
+1. Run the loop. All five requests return `200 OK`:
+
+   ```bash
+   for minute in 01 02 03 04 05; do
+     curl -sS -o /dev/null -w "starts_at minute ${minute}: %{http_code}\n" \
+       -X POST http://localhost:8080/advisement/appointments \
+       --header 'Authorization: Bearer demo-student' \
+       --header 'Content-Type: application/json' \
+       --data "{\"student_id\":\"123456789\",\"advisor_id\":\"111111111\",\"appointment_type\":\"academic_advising\",\"starts_at\":\"2026-10-08T17:${minute}:00-07:00\"}"
+   done
+   ```
+
+2. Query the database and show that all five requests created appointments:
+
+   ```bash
+   task query-appointments
+   ```
+
+3. Explain that authentication and authorization identify a trusted client,
+   but they do not limit how much work that client can request.
 
 ### Steps: fix
 
-1. Add a deliberately visible per-client or per-user rate limit.
-2. Repeat the request loop.
-3. Show `429 Too Many Requests`.
-4. Show `Retry-After` and the Problem Details response.
-5. Explain that the client should wait rather than retry in a tight loop.
+1. Stop the server in Terminal 1, clear the database, and restart it with a
+   three-request limit over a ten-second window:
+
+   ```bash
+   task clear-db
+   DEMO_RATE_LIMIT=3 DEMO_RATE_LIMIT_WINDOW=10s task start
+   ```
+
+2. Run the same five-request loop again. The first three requests return
+   `200 OK`; the remaining requests return `429 Too Many Requests`.
+
+3. Send one request with headers and the response body visible:
+
+   ```bash
+   curl -i -X POST http://localhost:8080/advisement/appointments \
+     --header 'Authorization: Bearer demo-student' \
+     --header 'Content-Type: application/json' \
+     --data '{
+       "student_id": "123456789",
+       "advisor_id": "111111111",
+       "appointment_type": "academic_advising",
+       "starts_at": "2026-10-08T18:00:00-07:00"
+     }'
+   ```
+
+   Point out the `Retry-After` header and the Problem Details fields:
+   `type`, `title`, `status`, `code`, and `detail`.
+
+4. Follow the `type` URI for the client guidance:
+
+   ```bash
+   curl -i http://localhost:8080/problems/rate-limit-exceeded
+   ```
+
+5. Query the database again. Only the first three requests were accepted:
+
+   ```bash
+   task query-appointments
+   ```
+
+6. Explain that a client should wait for the `Retry-After` duration instead
+   of retrying immediately in a tight loop. The server terminal also shows the
+   rejected attempts in the audit log with `reason=rate_limit_exceeded`.
 
 ### Transition
 
