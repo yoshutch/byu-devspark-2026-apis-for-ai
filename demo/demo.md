@@ -430,22 +430,107 @@ Run after [10.md](../presentation/10.md), before [11.md](../presentation/11.md).
 
 Show that idempotency does not solve concurrent business conflicts.
 
-### Steps: failure
+### Business rule
 
-1. Reset the appointment state.
-2. Prepare two requests for the same advisor and time slot.
-3. Send them concurrently or with a small controlled delay.
-4. Show that an unsafe implementation creates two appointments.
-5. Ask the audience which request should win.
+An advisor cannot have two appointments in the same time slot.
 
-### Steps: fix
+### Presenter setup
 
-1. Enforce the appointment-slot invariant in the application or database.
-2. Allow one request to succeed.
-3. Return `409 Conflict` to the other request.
-4. Format the response as `application/problem+json`.
-5. Highlight the problem `type`, `title`, `status`, `detail`, and API-specific `code`.
-6. Show how the client can ask the user to choose another time without silently changing the request.
+```bash
+git checkout demo-5-start
+task clear-db
+DEMO_SLOT_CHECK_DELAY=500ms task start
+```
+
+Use the same request body for each test:
+
+```bash
+APPOINTMENT='{
+  "student_id": "123456789",
+  "advisor_id": "111111111",
+  "appointment_type": "academic_advising",
+  "starts_at": "2026-10-08T17:00:00-07:00"
+}'
+```
+
+### Major code changes: unsafe version
+
+There's a deliberate check-then-insert race:
+
+### Steps: show the conflict
+
+1. Send two requests concurrently:
+
+   ```bash
+   curl -sS -i -X POST http://localhost:8080/advisement/appointments \
+     --header 'Authorization: Bearer demo-student' \
+     --header 'Content-Type: application/json' \
+     --header 'Idempotency-Key: demo-client-a' \
+     --data "$APPOINTMENT" &
+
+   curl -sS -i -X POST http://localhost:8080/advisement/appointments \
+     --header 'Authorization: Bearer demo-student' \
+     --header 'Content-Type: application/json' \
+     --header 'Idempotency-Key: demo-client-b' \
+     --data "$APPOINTMENT" &
+
+   wait
+   ```
+
+2. Query the database and show that both appointments were created:
+
+   ```bash
+   task query-appointments
+   ```
+
+3. Ask: Which request should win, and where should that rule be enforced?
+
+### Major code changes: fixed version
+
+Create a database uniqueness rule for the business invariant:
+
+```sql
+CREATE UNIQUE INDEX appointments_advisor_slot
+ON appointments (advisor_id, starts_at);
+```
+
+Keep the application-level availability check for a friendly early response,
+but let the database enforce the rule for concurrent requests. Translate the
+unique-constraint error into an actionable conflict response:
+
+```http
+409 Conflict
+Content-Type: application/problem+json
+
+{
+  "type": "https://example.edu/problems/appointment-slot-unavailable",
+  "title": "Appointment slot unavailable",
+  "status": 409,
+  "code": "APPOINTMENT_SLOT_UNAVAILABLE",
+  "detail": "The requested appointment slot is no longer available."
+}
+```
+
+### Steps: show the fix
+
+1. Check out the fixed Demo 5 code state and reset the database before starting:
+
+   ```bash
+   git checkout demo-5-fix
+   task clear-db
+   task start
+   ```
+
+2. Repeat the same two concurrent requests from above.
+
+3. Show that one request succeeds and the other returns `409 Conflict` with
+   `application/problem+json`.
+
+4. Highlight the problem `type`, `title`, `status`, `detail`, and API-specific
+   `code`.
+
+5. Explain the safe client behavior: ask the user to choose another time or
+   offer available alternatives. Do not silently change the requested time.
 
 ### Transition
 

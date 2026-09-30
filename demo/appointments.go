@@ -37,6 +37,7 @@ var demoPrincipals = map[string]principal{
 type demoConfig struct {
 	timeoutAfterCreate time.Duration
 	timeoutOnce        sync.Once
+	slotCheckDelay     time.Duration
 }
 
 type problemDetails struct {
@@ -48,16 +49,31 @@ type problemDetails struct {
 }
 
 func newDemoConfig() (*demoConfig, error) {
-	value := strings.TrimSpace(os.Getenv("DEMO_TIMEOUT_AFTER_CREATE"))
+	timeoutAfterCreate, err := demoDuration("DEMO_TIMEOUT_AFTER_CREATE")
+	if err != nil {
+		return nil, err
+	}
+	slotCheckDelay, err := demoDuration("DEMO_SLOT_CHECK_DELAY")
+	if err != nil {
+		return nil, err
+	}
+	return &demoConfig{
+		timeoutAfterCreate: timeoutAfterCreate,
+		slotCheckDelay:     slotCheckDelay,
+	}, nil
+}
+
+func demoDuration(name string) (time.Duration, error) {
+	value := strings.TrimSpace(os.Getenv(name))
 	if value == "" {
-		return &demoConfig{}, nil
+		return 0, nil
 	}
 
 	duration, err := time.ParseDuration(value)
 	if err != nil || duration <= 0 {
-		return nil, fmt.Errorf("DEMO_TIMEOUT_AFTER_CREATE must be a positive duration such as 3s")
+		return 0, fmt.Errorf("%s must be a positive duration such as 500ms", name)
 	}
-	return &demoConfig{timeoutAfterCreate: duration}, nil
+	return duration, nil
 }
 
 func (config *demoConfig) delayAfterCreate() {
@@ -67,6 +83,12 @@ func (config *demoConfig) delayAfterCreate() {
 	config.timeoutOnce.Do(func() {
 		time.Sleep(config.timeoutAfterCreate)
 	})
+}
+
+func (config *demoConfig) delayAfterSlotCheck() {
+	if config.slotCheckDelay > 0 {
+		time.Sleep(config.slotCheckDelay)
+	}
 }
 
 func createAppointment(db *database, config *demoConfig) http.HandlerFunc {
@@ -153,6 +175,19 @@ func createAppointment(db *database, config *demoConfig) http.HandlerFunc {
 				return
 			}
 		}
+
+		taken, err := db.slotTaken(newAppointment.AdvisorID, newAppointment.StartsAt)
+		if err != nil {
+			auditAppointmentAttempt(r, caller, requestID, "failed", "slot_check_error", http.StatusInternalServerError, "")
+			http.Error(w, "could not check appointment slot", http.StatusInternalServerError)
+			return
+		}
+		if taken {
+			auditAppointmentAttempt(r, caller, requestID, "rejected", "slot_unavailable", http.StatusConflict, "")
+			http.Error(w, "appointment slot is unavailable", http.StatusConflict)
+			return
+		}
+		config.delayAfterSlotCheck()
 
 		id, err := db.save(newAppointment)
 		if err != nil {

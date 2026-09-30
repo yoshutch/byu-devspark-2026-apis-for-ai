@@ -31,6 +31,10 @@ func newDatabase(path string) (*database, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Keep the demo deterministic: serialize database operations so the
+	// application-level slot race is visible instead of producing SQLITE_BUSY.
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
 
 	if err := db.Ping(); err != nil {
 		db.Close()
@@ -83,6 +87,16 @@ func (db *database) save(appointment appointment) (int64, error) {
 
 	id, err := result.LastInsertId()
 	return id, err
+}
+
+func (db *database) slotTaken(advisorID, startsAt string) (bool, error) {
+	var count int
+	err := db.db.QueryRow(`
+		SELECT COUNT(*)
+		FROM appointments
+		WHERE advisor_id = ? AND starts_at = ?
+	`, advisorID, startsAt).Scan(&count)
+	return count > 0, err
 }
 
 func (db *database) findIdempotency(key string) (*idempotencyRecord, error) {
