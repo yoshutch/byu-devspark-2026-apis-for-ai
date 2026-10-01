@@ -171,9 +171,7 @@ The demo tokens are intentionally fake.
 ### Presenter setup
 
 ```bash
-git switch --detach demo-3
-task clear-db
-task start
+task start:demo3
 ```
 
 Use the same request body for each test:

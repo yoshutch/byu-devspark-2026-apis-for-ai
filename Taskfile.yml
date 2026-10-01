@@ -21,6 +21,13 @@ tasks:
       - rm -f appointments.db
       - go run .
 
+  start:demo3:
+    desc: Reset and start the Demo 3 API
+    dir: demo/demo3
+    cmds:
+      - rm -f appointments.db
+      - go run .
+
   clear-db:
     desc: Clear the demo SQLite database
     dir: demo
