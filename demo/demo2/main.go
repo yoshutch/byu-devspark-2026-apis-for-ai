@@ -52,7 +52,13 @@ func createAppointment(db *database) http.HandlerFunc {
 		}
 
 		if err := db.save(newAppointment); err != nil {
-			http.Error(w, "could not save appointment", http.StatusInternalServerError)
+			writeProblem(w, http.StatusInternalServerError, problemDetails{
+				Type:   problemTypeURL(r, "/problems/internal-server-error"),
+				Title:  "Internal server error",
+				Status: http.StatusInternalServerError,
+				Code:   "INTERNAL_SERVER_ERROR",
+				Detail: "The server could not complete the request.",
+			})
 			return
 		}
 

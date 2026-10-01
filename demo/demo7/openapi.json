@@ -134,14 +134,17 @@
                       "code": "APPOINTMENT_SLOT_UNAVAILABLE",
                       "detail": "The requested appointment slot is no longer available."
                     }
+                  },
+                  "idempotencyKeyReused": {
+                    "value": {
+                      "type": "http://localhost:8080/problems/idempotency-key-reused",
+                      "title": "Idempotency key already used",
+                      "status": 409,
+                      "code": "IDEMPOTENCY_KEY_REUSED",
+                      "detail": "The idempotency key was already used with different request data."
+                    }
                   }
                 }
-              },
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "idempotency key was already used with different request data\n"
               }
             }
           },
@@ -151,9 +154,16 @@
           "500": {
             "description": "The server could not complete the operation. The client should not assume that the appointment was not created; use the idempotency key when retrying.",
             "content": {
-              "text/plain": {
+              "application/problem+json": {
                 "schema": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/ProblemDetails"
+                },
+                "example": {
+                  "type": "http://localhost:8080/problems/internal-server-error",
+                  "title": "Internal server error",
+                  "status": 500,
+                  "code": "INTERNAL_SERVER_ERROR",
+                  "detail": "The server could not complete the request."
                 }
               }
             }

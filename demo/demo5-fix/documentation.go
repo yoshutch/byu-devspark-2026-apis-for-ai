@@ -55,6 +55,22 @@ func registerProblemRoutes(mux *http.ServeMux) {
 		Description: "The request body contains more than one JSON value.",
 		Resolution:  "Send exactly one JSON object in the request body.",
 	}))
+	mux.HandleFunc("GET /problems/internal-server-error", problemDocumentationHandler(problemDocumentation{
+		Type:        "/problems/internal-server-error",
+		Title:       "Internal server error",
+		Status:      http.StatusInternalServerError,
+		Code:        "INTERNAL_SERVER_ERROR",
+		Description: "The server could not complete the request.",
+		Resolution:  "Retry the request when appropriate, using the same idempotency key if one was provided.",
+	}))
+	mux.HandleFunc("GET /problems/idempotency-key-reused", problemDocumentationHandler(problemDocumentation{
+		Type:        "/problems/idempotency-key-reused",
+		Title:       "Idempotency key already used",
+		Status:      http.StatusConflict,
+		Code:        "IDEMPOTENCY_KEY_REUSED",
+		Description: "The idempotency key was already used with different request data.",
+		Resolution:  "Retry with the original request data or use a new idempotency key for a new operation.",
+	}))
 	mux.HandleFunc("GET /problems/appointment-slot-unavailable", problemDocumentationHandler(problemDocumentation{
 		Type:        "/problems/appointment-slot-unavailable",
 		Title:       "Appointment slot unavailable",

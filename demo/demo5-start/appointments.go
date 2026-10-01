@@ -178,13 +178,25 @@ func createAppointment(db *database, config *demoConfig) http.HandlerFunc {
 			record, err := db.findIdempotency(idempotencyKey)
 			if err != nil {
 				auditAppointmentAttempt(r, caller, requestID, "failed", "idempotency_lookup_error", http.StatusInternalServerError, "")
-				http.Error(w, "could not read idempotency record", http.StatusInternalServerError)
+				writeProblem(w, http.StatusInternalServerError, problemDetails{
+					Type:   problemTypeURL(r, "/problems/internal-server-error"),
+					Title:  "Internal server error",
+					Status: http.StatusInternalServerError,
+					Code:   "INTERNAL_SERVER_ERROR",
+					Detail: "The server could not complete the request.",
+				})
 				return
 			}
 			if record != nil {
 				if record.RequestHash != requestHash {
 					auditAppointmentAttempt(r, caller, requestID, "rejected", "idempotency_key_reused", http.StatusConflict, record.ResourceID)
-					http.Error(w, "idempotency key was already used with different request data", http.StatusConflict)
+					writeProblem(w, http.StatusConflict, problemDetails{
+						Type:   problemTypeURL(r, "/problems/idempotency-key-reused"),
+						Title:  "Idempotency key already used",
+						Status: http.StatusConflict,
+						Code:   "IDEMPOTENCY_KEY_REUSED",
+						Detail: "The idempotency key was already used with different request data.",
+					})
 					return
 				}
 
@@ -197,7 +209,13 @@ func createAppointment(db *database, config *demoConfig) http.HandlerFunc {
 		taken, err := db.slotTaken(newAppointment.AdvisorID, newAppointment.StartsAt)
 		if err != nil {
 			auditAppointmentAttempt(r, caller, requestID, "failed", "slot_check_error", http.StatusInternalServerError, "")
-			http.Error(w, "could not check appointment slot", http.StatusInternalServerError)
+			writeProblem(w, http.StatusInternalServerError, problemDetails{
+				Type:   problemTypeURL(r, "/problems/internal-server-error"),
+				Title:  "Internal server error",
+				Status: http.StatusInternalServerError,
+				Code:   "INTERNAL_SERVER_ERROR",
+				Detail: "The server could not complete the request.",
+			})
 			return
 		}
 		if taken {
@@ -210,7 +228,13 @@ func createAppointment(db *database, config *demoConfig) http.HandlerFunc {
 		id, err := db.save(newAppointment)
 		if err != nil {
 			auditAppointmentAttempt(r, caller, requestID, "failed", "database_error", http.StatusInternalServerError, "")
-			http.Error(w, "could not save appointment", http.StatusInternalServerError)
+			writeProblem(w, http.StatusInternalServerError, problemDetails{
+				Type:   problemTypeURL(r, "/problems/internal-server-error"),
+				Title:  "Internal server error",
+				Status: http.StatusInternalServerError,
+				Code:   "INTERNAL_SERVER_ERROR",
+				Detail: "The server could not complete the request.",
+			})
 			return
 		}
 		newAppointment.ID = id
@@ -218,7 +242,13 @@ func createAppointment(db *database, config *demoConfig) http.HandlerFunc {
 		responseBody, err := json.Marshal(newAppointment)
 		if err != nil {
 			auditAppointmentAttempt(r, caller, requestID, "failed", "response_encoding_error", http.StatusInternalServerError, resourceID)
-			http.Error(w, "could not encode appointment", http.StatusInternalServerError)
+			writeProblem(w, http.StatusInternalServerError, problemDetails{
+				Type:   problemTypeURL(r, "/problems/internal-server-error"),
+				Title:  "Internal server error",
+				Status: http.StatusInternalServerError,
+				Code:   "INTERNAL_SERVER_ERROR",
+				Detail: "The server could not complete the request.",
+			})
 			return
 		}
 		responseBody = append(responseBody, '\n')
@@ -226,7 +256,13 @@ func createAppointment(db *database, config *demoConfig) http.HandlerFunc {
 		if idempotencyKey != "" {
 			if err := db.saveIdempotency(idempotencyKey, requestHash, responseBody, http.StatusOK, resourceID); err != nil {
 				auditAppointmentAttempt(r, caller, requestID, "failed", "idempotency_store_error", http.StatusInternalServerError, resourceID)
-				http.Error(w, "could not save idempotency record", http.StatusInternalServerError)
+				writeProblem(w, http.StatusInternalServerError, problemDetails{
+					Type:   problemTypeURL(r, "/problems/internal-server-error"),
+					Title:  "Internal server error",
+					Status: http.StatusInternalServerError,
+					Code:   "INTERNAL_SERVER_ERROR",
+					Detail: "The server could not complete the request.",
+				})
 				return
 			}
 		}

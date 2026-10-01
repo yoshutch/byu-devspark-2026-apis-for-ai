@@ -55,6 +55,14 @@ func registerProblemRoutes(mux *http.ServeMux) {
 		Description: "The request body contains more than one JSON value.",
 		Resolution:  "Send exactly one JSON object in the request body.",
 	}))
+	mux.HandleFunc("GET /problems/internal-server-error", problemDocumentationHandler(problemDocumentation{
+		Type:        "/problems/internal-server-error",
+		Title:       "Internal server error",
+		Status:      http.StatusInternalServerError,
+		Code:        "INTERNAL_SERVER_ERROR",
+		Description: "The server could not complete the request.",
+		Resolution:  "Retry the request when appropriate, using the same idempotency key if one was provided.",
+	}))
 }
 
 func problemDocumentationHandler(documentation problemDocumentation) http.HandlerFunc {
