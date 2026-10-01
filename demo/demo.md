@@ -1,6 +1,6 @@
 # Demo runbook
 
-Each demo starts from a tagged state, shows one contract problem, and returns to the slides with one focused improvement.
+Each demo starts from its own resettable code folder, shows one contract problem, and returns to the slides with one focused improvement.
 
 ---
 
@@ -89,9 +89,7 @@ Improve the request’s domain meaning without solving every reliability or secu
 ### Presenter setup
 
 ```bash
-git switch --detach demo-2
-task clear-db
-task start
+task start:demo2
 ```
 
 ### Steps
