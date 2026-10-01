@@ -17,7 +17,7 @@ Show that the API works, while leaving important decisions to inference.
 ### Presenter setup
 
 ```bash
-task start:demo1
+task start DEMO=demo1
 ```
 
 ### Steps
@@ -58,7 +58,7 @@ Ask the agent to explain its assumptions after making the request. Capture:
 View the recorded appointments in the database:
 
 ```shell
-task query:demo1
+task query DEMO=demo1
 ```
 
 ### Transition
@@ -89,7 +89,7 @@ Improve the request’s domain meaning without solving every reliability or secu
 ### Presenter setup
 
 ```bash
-task start:demo2
+task start DEMO=demo2
 ```
 
 ### Steps
@@ -171,7 +171,7 @@ The demo tokens are intentionally fake.
 ### Presenter setup
 
 ```bash
-task start:demo3
+task start DEMO=demo3
 ```
 
 Use the same request body for each test:
@@ -276,7 +276,7 @@ Show that a timeout creates uncertainty and that a retry can accidentally create
 Reset the database and start the server with a three-second, server-side response delay:
 
 ```bash
-task start:demo4
+task start DEMO=demo4 TIMEOUT=3s
 ```
 
 The timeout is configured on the server. The request itself looks normal.
@@ -307,7 +307,7 @@ APPOINTMENT='{
    Wait for the three-second server delay to finish, then inspect the database:
 
    ```bash
-   task query:demo4
+   task query DEMO=demo4
    ```
 
 3. Retry the identical request without an idempotency key:
@@ -328,7 +328,7 @@ Restart the server so the one-time delay is available again:
 Stop the server with `Ctrl-C`, then run:
 
 ```bash
-task start:demo4
+task start DEMO=demo4 TIMEOUT=3s
 ```
 
 1. Add an `Idempotency-Key` to the first request:
@@ -354,7 +354,7 @@ task start:demo4
 3. Query the database and show that only one appointment exists:
 
    ```bash
-   task query:demo4
+   task query DEMO=demo4
    ```
 
 4. Reuse the same key with different request data. The API rejects the request:
@@ -407,7 +407,7 @@ An advisor cannot have two appointments in the same time slot.
 Use two terminals. In Terminal 1, start the unsafe API:
 
 ```bash
-task start:demo5-start
+task start DEMO=demo5-start SLOT_DELAY=500ms
 ```
 
 In Terminal 2, define the request body once:
@@ -448,7 +448,7 @@ APPOINTMENT='{
 3. Query the database:
 
    ```bash
-   task query:demo5-start
+   task query DEMO=demo5-start
    ```
 
 4. Show that two appointments were created for the same advisor and time. Ask:
@@ -460,7 +460,7 @@ APPOINTMENT='{
 1. Stop the server in Terminal 1, then start the fixed API:
 
    ```bash
-   task start:demo5-fix
+   task start DEMO=demo5-fix SLOT_DELAY=500ms
    ```
 
 2. Run the same two `curl` commands again. This time, one request returns
@@ -485,7 +485,7 @@ APPOINTMENT='{
 4. Query the database again:
 
    ```bash
-   task query:demo5-fix
+   task query DEMO=demo5-fix
    ```
 
 5. Show that only one appointment exists. Explain that the client should ask
@@ -523,7 +523,7 @@ Use a fresh server for each half of the demo. The limiter is disabled when
 In Terminal 1, start the API without a rate limit:
 
 ```bash
-task start:demo6
+task start DEMO=demo6
 ```
 
 Use Terminal 2 for the request loop in the steps below.
@@ -545,7 +545,7 @@ Use Terminal 2 for the request loop in the steps below.
 2. Query the database and show that all five requests created appointments:
 
    ```bash
-   task query:demo6
+   task query DEMO=demo6
    ```
 
 3. Explain that authentication and authorization identify a trusted client,
@@ -557,7 +557,7 @@ Use Terminal 2 for the request loop in the steps below.
    three-request limit over a ten-second window:
 
    ```bash
-   task start:demo6-limited
+   task start DEMO=demo6 RATE_LIMIT=3 RATE_WINDOW=10s
    ```
 
 2. Run the same five-request loop again. The first three requests return
@@ -589,7 +589,7 @@ Use Terminal 2 for the request loop in the steps below.
 5. Query the database again. Only the first three requests were accepted:
 
    ```bash
-   task query:demo6
+   task query DEMO=demo6
    ```
 
 6. Explain that a client should wait for the `Retry-After` duration instead
@@ -622,7 +622,7 @@ Show the appointment contract through its OpenAPI document and Scalar reference 
 ### Presenter setup
 
 ```bash
-task start:demo7
+task start DEMO=demo7
 ```
 
 ### Steps
@@ -670,7 +670,7 @@ Give an AI agent the final contract and see whether it can complete the appointm
 ### Presenter setup
 
 ```bash
-task start:demo7
+task start DEMO=demo7
 ```
 
 Use the server terminal to watch the audit event and a scratch Codex session
@@ -705,7 +705,7 @@ Observe whether the agent can:
 Inspect the resulting appointment and audit event:
 
 ```bash
-task query:demo7
+task query DEMO=demo7
 ```
 
 ### Final comparison

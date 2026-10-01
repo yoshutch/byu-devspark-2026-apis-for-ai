@@ -1,122 +1,20 @@
 version: '3'
 
 tasks:
-  start:demo1:
-    desc: Reset and start the Demo 1 API
-    dir: demo/demo1
-    cmds:
-      - rm -f appointments.db
-      - go run .
-
-  start:demo2:
-    desc: Reset and start the Demo 2 API
-    dir: demo/demo2
-    cmds:
-      - rm -f appointments.db
-      - go run .
-
-  start:demo3:
-    desc: Reset and start the Demo 3 API
-    dir: demo/demo3
-    cmds:
-      - rm -f appointments.db
-      - go run .
-
-  start:demo4:
-    desc: Reset and start the Demo 4 API
-    dir: demo/demo4
+  start:
+    desc: Reset and start a demo API; pass DEMO=demo1, for example
+    dir: demo/{{.DEMO}}
     env:
-      DEMO_TIMEOUT_AFTER_CREATE: 3s
+      DEMO_TIMEOUT_AFTER_CREATE: '{{.TIMEOUT}}'
+      DEMO_SLOT_CHECK_DELAY: '{{.SLOT_DELAY}}'
+      DEMO_RATE_LIMIT: '{{.RATE_LIMIT}}'
+      DEMO_RATE_LIMIT_WINDOW: '{{.RATE_WINDOW}}'
     cmds:
       - rm -f appointments.db
       - go run .
 
-  start:demo5-start:
-    desc: Reset and start the unsafe Demo 5 API
-    dir: demo/demo5-start
-    env:
-      DEMO_SLOT_CHECK_DELAY: 500ms
-    cmds:
-      - rm -f appointments.db
-      - go run .
-
-  start:demo5-fix:
-    desc: Reset and start the fixed Demo 5 API
-    dir: demo/demo5-fix
-    env:
-      DEMO_SLOT_CHECK_DELAY: 500ms
-    cmds:
-      - rm -f appointments.db
-      - go run .
-
-  start:demo6:
-    desc: Reset and start the unlimited Demo 6 API
-    dir: demo/demo6
-    cmds:
-      - rm -f appointments.db
-      - go run .
-
-  start:demo6-limited:
-    desc: Reset and start the rate-limited Demo 6 API
-    dir: demo/demo6
-    env:
-      DEMO_RATE_LIMIT: 3
-      DEMO_RATE_LIMIT_WINDOW: 10s
-    cmds:
-      - rm -f appointments.db
-      - go run .
-
-  start:demo7:
-    desc: Reset and start the Demo 7 API
-    dir: demo/demo7
-    cmds:
-      - rm -f appointments.db
-      - go run .
-
-  query:demo1:
-    desc: Query Demo 1 appointments
-    dir: demo/demo1
-    cmds:
-      - sqlite3 appointments.db "SELECT * FROM appointments;"
-
-  query:demo2:
-    desc: Query Demo 2 appointments
-    dir: demo/demo2
-    cmds:
-      - sqlite3 appointments.db "SELECT * FROM appointments;"
-
-  query:demo3:
-    desc: Query Demo 3 appointments
-    dir: demo/demo3
-    cmds:
-      - sqlite3 appointments.db "SELECT * FROM appointments;"
-
-  query:demo4:
-    desc: Query Demo 4 appointments
-    dir: demo/demo4
-    cmds:
-      - sqlite3 appointments.db "SELECT * FROM appointments;"
-
-  query:demo5-start:
-    desc: Query unsafe Demo 5 appointments
-    dir: demo/demo5-start
-    cmds:
-      - sqlite3 appointments.db "SELECT * FROM appointments;"
-
-  query:demo5-fix:
-    desc: Query fixed Demo 5 appointments
-    dir: demo/demo5-fix
-    cmds:
-      - sqlite3 appointments.db "SELECT * FROM appointments;"
-
-  query:demo6:
-    desc: Query Demo 6 appointments
-    dir: demo/demo6
-    cmds:
-      - sqlite3 appointments.db "SELECT * FROM appointments;"
-
-  query:demo7:
-    desc: Query Demo 7 appointments
-    dir: demo/demo7
+  query:
+    desc: Query appointments; pass DEMO=demo1, for example
+    dir: demo/{{.DEMO}}
     cmds:
       - sqlite3 appointments.db "SELECT * FROM appointments;"
