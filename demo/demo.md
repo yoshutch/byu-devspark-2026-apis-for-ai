@@ -1,31 +1,6 @@
 # Demo runbook
 
-The presentation should use one small appointment API and improve the same operation throughout the session. Every demo should begin from a known state, expose one problem, make one focused change, and then return to the slides.
-
-## Demo principles
-
-- Keep the application local and use fake data only.
-- Make the application resettable between demonstrations.
-- Prefer `curl` when the request or response is the point; use Bruno when the saved request history is useful.
-- Keep the codebase small enough that the audience can understand the relevant change.
-- Show the failure before showing the fix.
-- Do not demonstrate every possible API feature. Demonstrate the few changes that make the contract safer and clearer.
-- Have a backup recording or screenshots available in case the live environment fails.
-
-## Suggested time budget
-
-| Demo | Slides | Purpose | Target time |
-| --- | --- | --- | ---: |
-| 1 | `03` → `04` | Expose the ambiguity | 4 minutes |
-| 2 | `04` → `05` | Make meaning explicit | 3 minutes |
-| 3 | `06` → `07` | Test authorization and inspect the audit event | 4 minutes |
-| 4 | `08` → `09` | Show duplicate work after a timeout, then add idempotency | 5 minutes |
-| 5 | `10` → `11` | Show a slot conflict, then return an actionable error | 5 minutes |
-| 6 | `12` → `13` | Show excessive requests, then add rate limiting | 4 minutes |
-| 7 | `14` → `15` | Show what a client can discover, then add OpenAPI documentation | 4 minutes |
-| 8 | `16` → `17` | Compare the final API with the original | 5 minutes |
-
-The demos total roughly 34 minutes. If the session is shorter, combine demos 2 and 3, or omit the live OpenAPI editing and show the final specification instead.
+Each demo starts from a tagged state, shows one contract problem, and returns to the slides with one focused improvement.
 
 ---
 
@@ -107,6 +82,12 @@ Run after [04.md](../presentation/04.md), before or while presenting [05.md](../
 
 Improve the request’s domain meaning without solving every reliability or security problem yet.
 
+### Major code changes (optional presenter note)
+
+- Replace `POST /schedule` form data with `POST /advisement/appointments` JSON.
+- Require explicit fields and RFC3339 `starts_at` values.
+- Reject missing, unknown, or ambiguous input.
+
 ### Presenter setup
 
 ```bash
@@ -114,15 +95,6 @@ git switch --detach demo-2
 task clear-db
 task start
 ```
-
-### Major code changes
-
-- Change the route from `POST /schedule` to `POST /advisement/appointments`.
-- Replace form data with a JSON request body.
-- Use explicit fields: `student_id`, `advisor_id`, `appointment_type`, and `starts_at`.
-- Validate required fields and require `starts_at` to use RFC3339 format.
-- Reject unknown fields and extra JSON values.
-- Store the explicit fields in the appointments table.
 
 ### Steps
 
@@ -191,20 +163,14 @@ Run after [06.md](../presentation/06.md), before [07.md](../presentation/07.md).
 
 Show that documentation and explicit fields do not make an operation safe by themselves.
 
-### Major code changes
+### Major code changes (optional presenter note)
 
-- Add simple bearer-token authentication for the local demo.
-- Return `401 Unauthorized` when credentials are missing or invalid.
-- Return `403 Forbidden` as Problem Details when the caller lacks permission.
-- Serve local documentation for the problem type URIs.
-- Allow `demo-student` to schedule only for student `123456789`.
-- Log each attempt directly from the appointment handler.
-- Emit structured, human-readable audit events with Go `log/slog`.
+- Add fake bearer authentication and authorization.
+- Return `401`/`403` responses and record structured audit events.
 
-<!-- TODO: Remove X-Request-ID from these Demo 3 commands once the audit
-walkthrough no longer needs client-supplied correlation labels. -->
+<!-- TODO: Remove X-Request-ID from these Demo 3 commands once the audit walkthrough no longer needs client-supplied correlation labels. -->
 
-The demo tokens are intentionally fake
+The demo tokens are intentionally fake.
 
 ### Presenter setup
 
@@ -306,10 +272,10 @@ Run after [08.md](../presentation/08.md), before [09.md](../presentation/09.md).
 
 Show that a timeout creates uncertainty and that a retry can accidentally create duplicate business work.
 
-### Major code changes
+### Major code changes (optional presenter note)
 
-- Read `DEMO_TIMEOUT_AFTER_CREATE` from the server environment.
-- Delay only the first successful response after the appointment is saved.
+- Add a one-time response delay controlled by `DEMO_TIMEOUT_AFTER_CREATE`.
+- Store and replay responses for repeated `Idempotency-Key` values.
 
 ### Presenter setup
 
@@ -363,16 +329,11 @@ APPOINTMENT='{
 
    Query the database again and show the duplicate appointment.
 
-### Major code changes
-
-- Accept an optional `Idempotency-Key` header.
-- Store the request fingerprint and original response in SQLite.
-- Replay the original response when the same key and request are retried.
-- Reject reuse of a key with different request data.
-
 ### Steps: show the idempotency fix
 
 Restart the server so the one-time delay is available again:
+
+Stop the server with `Ctrl-C`, then run:
 
 ```bash
 task clear-db
@@ -445,13 +406,10 @@ Show that idempotency does not solve concurrent business conflicts.
 
 An advisor cannot have two appointments in the same time slot.
 
-### Major code changes
+### Major code changes (optional presenter note)
 
-- Add a database uniqueness rule for `(advisor_id, starts_at)`.
-- Keep the availability check for an early response.
-- Translate concurrent uniqueness violations into `409 Conflict`.
-- Return the conflict as `application/problem+json`.
-- Serve local documentation for the conflict problem type URI.
+- Enforce `(advisor_id, starts_at)` uniqueness in SQLite.
+- Translate the losing request into an actionable `409` Problem Details response.
 
 ### Presenter setup
 
@@ -565,13 +523,10 @@ Run after [12.md](../presentation/12.md), before [13.md](../presentation/13.md).
 
 Show that an authorized client can still overload the API or the calendar service behind it.
 
-### Major code changes
+### Major code changes (optional presenter note)
 
-- Add a small in-memory, per-client fixed-window rate limiter.
-- Configure the limit with `DEMO_RATE_LIMIT` and `DEMO_RATE_LIMIT_WINDOW`.
-- Return `429 Too Many Requests` with a `Retry-After` header.
-- Return the rate-limit failure as `application/problem+json`.
-- Audit rejected requests with the reason `rate_limit_exceeded`.
+- Add a configurable per-client fixed-window rate limiter.
+- Return `429` with `Retry-After` and audit rejected requests.
 
 ### Presenter setup
 
@@ -673,7 +628,12 @@ Run after [14.md](../presentation/14.md), before or while presenting [15.md](../
 
 ### Goal
 
-Show the difference between rules that exist in the implementation and rules that consumers can actually discover.
+Show the appointment contract through its OpenAPI document and Scalar reference UI.
+
+### Major code changes (optional presenter note)
+
+- Add and serve the OpenAPI document at `/openapi.json`.
+- Render the same document at `/docs` with Scalar.
 
 ### Presenter setup
 
@@ -703,19 +663,9 @@ task start
    responses, bearer authentication, `Idempotency-Key`, `Retry-After`, and
    guidance for retries and conflicts.
 
-2. Show the Scalar-rendered human-readable view:
-
-   ```bash
-   curl -i http://localhost:8080/docs
-   ```
-
-   If a browser is available, open `http://localhost:8080/docs`. Scalar renders
-   the same `/openapi.json` document as an interactive reference, so the
-   operation details are not duplicated in handwritten HTML.
-
-### Keep the claim modest
-
-Do not claim that OpenAPI makes an agent deterministic. The point is that the agent has fewer important gaps to guess across.
+2. Open `http://localhost:8080/docs` in a browser. Scalar renders the same
+   `/openapi.json` document as an interactive reference, so the operation
+   details are not duplicated in handwritten HTML.
 
 ### Transition
 
@@ -733,7 +683,7 @@ Run at the end of [16.md](../presentation/16.md), before [17.md](../presentation
 
 ### Goal
 
-Compare the original and updated API using the same appointment task.
+Give an AI agent the final contract and see whether it can complete the appointment task safely.
 
 ### Presenter setup
 
@@ -756,6 +706,8 @@ Read the OpenAPI document at http://localhost:8080/openapi.json first.
 Schedule an academic advising appointment for student 123456789 with advisor
 111111111 on 2026-10-08 at 5:00 PM Mountain Time. Use an idempotency key.
 You may use the fake demo bearer token `demo-student` for authorization.
+After the first response, repeat the same request with the same idempotency key
+and explain what happens.
 Explain how you chose the request fields and how you would safely retry if the
 response timed out.
 ```
@@ -765,7 +717,7 @@ Observe whether the agent can:
 - find `POST /advisement/appointments` in the OpenAPI document;
 - identify the required fields and `academic_advising` enum;
 - use the RFC3339 timestamp format;
-- provide the bearer token or explain that authorization context is required;
+- use the provided bearer token for the authorized student;
 - include an idempotency key;
 - distinguish a successful response from a replayed retry.
 
@@ -787,16 +739,3 @@ Show the original request beside the final request and ask:
 ### Transition
 
 Move to [17.md](../presentation/17.md) and use the checklist as the lasting takeaway.
-
----
-
-## Backup plan
-
-If a live demo fails:
-
-1. Explain what the audience was supposed to observe.
-2. Show the prepared request and response recording.
-3. Show the relevant code diff.
-4. Continue with the next slide.
-
-The audience should remember the contract improvements, not the success or failure of the local environment.
