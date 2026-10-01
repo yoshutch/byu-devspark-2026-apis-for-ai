@@ -17,9 +17,7 @@ Show that the API works, while leaving important decisions to inference.
 ### Presenter setup
 
 ```bash
-git switch --detach demo-1
-task clear-db
-task start
+task start:demo1
 ```
 
 ### Steps
