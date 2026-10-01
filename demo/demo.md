@@ -670,8 +670,7 @@ Give an AI agent the final contract and see whether it can complete the appointm
 ### Presenter setup
 
 ```bash
-task clear-db
-task start
+task start:demo7
 ```
 
 Use the server terminal to watch the audit event and a scratch Codex session
@@ -706,7 +705,7 @@ Observe whether the agent can:
 Inspect the resulting appointment and audit event:
 
 ```bash
-task query-appointments
+task query:demo7
 ```
 
 ### Final comparison
