@@ -20,7 +20,6 @@ The presentation is meant to be displayed with a Markdown renderer, like GitHub.
   state so each demo is reliable and easy to repeat.
 - Keep error responses, curl commands, and other client-visible behavior
   explicit. Preserve the progression from one demo portion to the next.
-- When adding a new error type include the new type in the problem routes.
 - Don't commit code changes to allow for human review.
 - Review the slides (in /presentation) around the demo that needs code changes to ensure the demo code accomplishes the goals of the slides.
 
@@ -31,7 +30,7 @@ Each demo section should contain concise presenter setup, copy/paste commands,
 expected observations, and a transition back to the slides. Remove speculative
 planning notes, alternatives, and unfinished implementation plans from it.
 
-The demo will use a strategy with git tags to switch between the different demos in a reliable and repeatable way.
+The demo will use a strategy of different directories for each demo step, to be reliable and repeatable.
 The presenter should not have to write code during the presentation.
 
 The demo should focus on the API contract instead of the code itself.
