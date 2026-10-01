@@ -74,13 +74,41 @@
             }
           },
           "400": {
-            "description": "The request body is invalid JSON, contains unknown fields, is missing a required field, or uses an invalid timestamp or appointment type.",
+            "description": "The request body is invalid JSON, contains unknown fields, has multiple JSON values, is missing a required field, or uses an invalid timestamp or appointment type.",
             "content": {
-              "text/plain": {
+              "application/problem+json": {
                 "schema": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/ProblemDetails"
                 },
-                "example": "starts_at must be a valid RFC3339 timestamp\n"
+                "examples": {
+                  "invalidJson": {
+                    "value": {
+                      "type": "http://localhost:8080/problems/invalid-json",
+                      "title": "Invalid JSON request body",
+                      "status": 400,
+                      "code": "INVALID_JSON",
+                      "detail": "The request body must contain valid JSON with only supported fields."
+                    }
+                  },
+                  "invalidAppointment": {
+                    "value": {
+                      "type": "http://localhost:8080/problems/invalid-appointment",
+                      "title": "Invalid appointment",
+                      "status": 400,
+                      "code": "INVALID_APPOINTMENT",
+                      "detail": "starts_at must be a valid RFC3339 timestamp"
+                    }
+                  },
+                  "multipleJsonValues": {
+                    "value": {
+                      "type": "http://localhost:8080/problems/multiple-json-values",
+                      "title": "Multiple JSON values",
+                      "status": 400,
+                      "code": "MULTIPLE_JSON_VALUES",
+                      "detail": "The request body must contain exactly one JSON object."
+                    }
+                  }
+                }
               }
             }
           },

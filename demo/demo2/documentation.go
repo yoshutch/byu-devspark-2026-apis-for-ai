@@ -5,6 +5,14 @@ import (
 	"net/http"
 )
 
+type problemDetails struct {
+	Type   string `json:"type"`
+	Title  string `json:"title"`
+	Status int    `json:"status"`
+	Code   string `json:"code"`
+	Detail string `json:"detail"`
+}
+
 type problemDocumentation struct {
 	Type        string `json:"type"`
 	Title       string `json:"title"`
@@ -15,22 +23,6 @@ type problemDocumentation struct {
 }
 
 func registerProblemRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /problems/authentication-required", problemDocumentationHandler(problemDocumentation{
-		Type:        "/problems/authentication-required",
-		Title:       "Authentication required",
-		Status:      http.StatusUnauthorized,
-		Code:        "AUTHENTICATION_REQUIRED",
-		Description: "The request did not include a valid bearer token.",
-		Resolution:  "Send the request with a valid Authorization: Bearer token header.",
-	}))
-	mux.HandleFunc("GET /problems/appointment-not-permitted", problemDocumentationHandler(problemDocumentation{
-		Type:        "/problems/appointment-not-permitted",
-		Title:       "Appointment not permitted",
-		Status:      http.StatusForbidden,
-		Code:        "APPOINTMENT_NOT_PERMITTED",
-		Description: "The caller is authenticated but is not allowed to schedule this appointment.",
-		Resolution:  "Use an identity with scheduling permission and schedule only for the permitted student.",
-	}))
 	mux.HandleFunc("GET /problems/invalid-json", problemDocumentationHandler(problemDocumentation{
 		Type:        "/problems/invalid-json",
 		Title:       "Invalid JSON request body",
@@ -55,14 +47,6 @@ func registerProblemRoutes(mux *http.ServeMux) {
 		Description: "The request body contains more than one JSON value.",
 		Resolution:  "Send exactly one JSON object in the request body.",
 	}))
-	mux.HandleFunc("GET /problems/appointment-slot-unavailable", problemDocumentationHandler(problemDocumentation{
-		Type:        "/problems/appointment-slot-unavailable",
-		Title:       "Appointment slot unavailable",
-		Status:      http.StatusConflict,
-		Code:        "APPOINTMENT_SLOT_UNAVAILABLE",
-		Description: "The advisor already has an appointment at the requested time.",
-		Resolution:  "Ask the user to choose another time.",
-	}))
 }
 
 func problemDocumentationHandler(documentation problemDocumentation) http.HandlerFunc {
@@ -79,4 +63,10 @@ func problemTypeURL(r *http.Request, path string) string {
 		host = "localhost:8080"
 	}
 	return "http://" + host + path
+}
+
+func writeProblem(w http.ResponseWriter, status int, problem problemDetails) {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(problem)
 }

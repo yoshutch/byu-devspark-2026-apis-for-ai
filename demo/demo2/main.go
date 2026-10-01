@@ -18,18 +18,36 @@ func createAppointment(db *database) http.HandlerFunc {
 
 		var newAppointment appointment
 		if err := decoder.Decode(&newAppointment); err != nil {
-			http.Error(w, "request body must be valid JSON", http.StatusBadRequest)
+			writeProblem(w, http.StatusBadRequest, problemDetails{
+				Type:   problemTypeURL(r, "/problems/invalid-json"),
+				Title:  "Invalid JSON request body",
+				Status: http.StatusBadRequest,
+				Code:   "INVALID_JSON",
+				Detail: "The request body must contain valid JSON with only supported fields.",
+			})
 			return
 		}
 
 		if err := validateAppointment(newAppointment); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeProblem(w, http.StatusBadRequest, problemDetails{
+				Type:   problemTypeURL(r, "/problems/invalid-appointment"),
+				Title:  "Invalid appointment",
+				Status: http.StatusBadRequest,
+				Code:   "INVALID_APPOINTMENT",
+				Detail: err.Error(),
+			})
 			return
 		}
 
 		var extra json.RawMessage
 		if err := decoder.Decode(&extra); err != io.EOF {
-			http.Error(w, "request body must contain one JSON object", http.StatusBadRequest)
+			writeProblem(w, http.StatusBadRequest, problemDetails{
+				Type:   problemTypeURL(r, "/problems/multiple-json-values"),
+				Title:  "Multiple JSON values",
+				Status: http.StatusBadRequest,
+				Code:   "MULTIPLE_JSON_VALUES",
+				Detail: "The request body must contain exactly one JSON object.",
+			})
 			return
 		}
 
@@ -72,6 +90,7 @@ func main() {
 	defer db.close()
 
 	mux := http.NewServeMux()
+	registerProblemRoutes(mux)
 	mux.HandleFunc("POST /advisement/appointments", createAppointment(db))
 
 	port := os.Getenv("PORT")

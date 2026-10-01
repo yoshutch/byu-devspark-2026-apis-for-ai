@@ -31,6 +31,30 @@ func registerProblemRoutes(mux *http.ServeMux) {
 		Description: "The caller is authenticated but is not allowed to schedule this appointment.",
 		Resolution:  "Use an identity with scheduling permission and schedule only for the permitted student.",
 	}))
+	mux.HandleFunc("GET /problems/invalid-json", problemDocumentationHandler(problemDocumentation{
+		Type:        "/problems/invalid-json",
+		Title:       "Invalid JSON request body",
+		Status:      http.StatusBadRequest,
+		Code:        "INVALID_JSON",
+		Description: "The request body is not valid JSON or contains an unsupported field.",
+		Resolution:  "Send one JSON object using only the fields supported by the API.",
+	}))
+	mux.HandleFunc("GET /problems/invalid-appointment", problemDocumentationHandler(problemDocumentation{
+		Type:        "/problems/invalid-appointment",
+		Title:       "Invalid appointment",
+		Status:      http.StatusBadRequest,
+		Code:        "INVALID_APPOINTMENT",
+		Description: "One or more appointment fields are missing or invalid.",
+		Resolution:  "Provide all required fields using the documented formats.",
+	}))
+	mux.HandleFunc("GET /problems/multiple-json-values", problemDocumentationHandler(problemDocumentation{
+		Type:        "/problems/multiple-json-values",
+		Title:       "Multiple JSON values",
+		Status:      http.StatusBadRequest,
+		Code:        "MULTIPLE_JSON_VALUES",
+		Description: "The request body contains more than one JSON value.",
+		Resolution:  "Send exactly one JSON object in the request body.",
+	}))
 	mux.HandleFunc("GET /problems/appointment-slot-unavailable", problemDocumentationHandler(problemDocumentation{
 		Type:        "/problems/appointment-slot-unavailable",
 		Title:       "Appointment slot unavailable",
