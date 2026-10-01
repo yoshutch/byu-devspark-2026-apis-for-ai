@@ -58,7 +58,7 @@ Ask the agent to explain its assumptions after making the request. Capture:
 View the recorded appointments in the database:
 
 ```shell
-task query-appointments
+task query:demo1
 ```
 
 ### Transition
@@ -276,9 +276,7 @@ Show that a timeout creates uncertainty and that a retry can accidentally create
 Reset the database and start the server with a three-second, server-side response delay:
 
 ```bash
-git switch --detach demo-4
-task clear-db
-DEMO_TIMEOUT_AFTER_CREATE=3s task start
+task start:demo4
 ```
 
 The timeout is configured on the server. The request itself looks normal.
@@ -309,7 +307,7 @@ APPOINTMENT='{
    Wait for the three-second server delay to finish, then inspect the database:
 
    ```bash
-   task query-appointments
+   task query:demo4
    ```
 
 3. Retry the identical request without an idempotency key:
@@ -330,8 +328,7 @@ Restart the server so the one-time delay is available again:
 Stop the server with `Ctrl-C`, then run:
 
 ```bash
-task clear-db
-DEMO_TIMEOUT_AFTER_CREATE=3s task start
+task start:demo4
 ```
 
 1. Add an `Idempotency-Key` to the first request:
@@ -357,7 +354,7 @@ DEMO_TIMEOUT_AFTER_CREATE=3s task start
 3. Query the database and show that only one appointment exists:
 
    ```bash
-   task query-appointments
+   task query:demo4
    ```
 
 4. Reuse the same key with different request data. The API rejects the request:
@@ -407,12 +404,10 @@ An advisor cannot have two appointments in the same time slot.
 
 ### Presenter setup
 
-Use two terminals. In Terminal 1, check out the unsafe state and start the API:
+Use two terminals. In Terminal 1, start the unsafe API:
 
 ```bash
-git switch --detach demo-5-start
-task clear-db
-DEMO_SLOT_CHECK_DELAY=500ms task start
+task start:demo5-start
 ```
 
 In Terminal 2, define the request body once:
@@ -453,7 +448,7 @@ APPOINTMENT='{
 3. Query the database:
 
    ```bash
-   task query-appointments
+   task query:demo5-start
    ```
 
 4. Show that two appointments were created for the same advisor and time. Ask:
@@ -462,12 +457,10 @@ APPOINTMENT='{
 
 ### Steps: fix
 
-1. Stop the server in Terminal 1, then check out the fixed state:
+1. Stop the server in Terminal 1, then start the fixed API:
 
    ```bash
-   git switch --detach demo-5-fix
-   task clear-db
-   DEMO_SLOT_CHECK_DELAY=500ms task start
+   task start:demo5-fix
    ```
 
 2. Run the same two `curl` commands again. This time, one request returns
@@ -492,7 +485,7 @@ APPOINTMENT='{
 4. Query the database again:
 
    ```bash
-   task query-appointments
+   task query:demo5-fix
    ```
 
 5. Show that only one appointment exists. Explain that the client should ask
@@ -530,9 +523,7 @@ Use a fresh server for each half of the demo. The limiter is disabled when
 In Terminal 1, start the API without a rate limit:
 
 ```bash
-git switch --detach demo-6
-task clear-db
-task start
+task start:demo6
 ```
 
 Use Terminal 2 for the request loop in the steps below.
@@ -554,7 +545,7 @@ Use Terminal 2 for the request loop in the steps below.
 2. Query the database and show that all five requests created appointments:
 
    ```bash
-   task query-appointments
+   task query:demo6
    ```
 
 3. Explain that authentication and authorization identify a trusted client,
@@ -566,8 +557,7 @@ Use Terminal 2 for the request loop in the steps below.
    three-request limit over a ten-second window:
 
    ```bash
-   task clear-db
-   DEMO_RATE_LIMIT=3 DEMO_RATE_LIMIT_WINDOW=10s task start
+   task start:demo6-limited
    ```
 
 2. Run the same five-request loop again. The first three requests return
@@ -599,7 +589,7 @@ Use Terminal 2 for the request loop in the steps below.
 5. Query the database again. Only the first three requests were accepted:
 
    ```bash
-   task query-appointments
+   task query:demo6
    ```
 
 6. Explain that a client should wait for the `Retry-After` duration instead
@@ -632,9 +622,7 @@ Show the appointment contract through its OpenAPI document and Scalar reference 
 ### Presenter setup
 
 ```bash
-git switch --detach demo-7
-task clear-db
-task start
+task start:demo7
 ```
 
 ### Steps
