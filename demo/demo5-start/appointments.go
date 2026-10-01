@@ -267,9 +267,6 @@ func authenticate(r *http.Request) (principal, bool) {
 }
 
 func getRequestID(r *http.Request) string {
-	if requestID := strings.TrimSpace(r.Header.Get("X-Request-ID")); requestID != "" {
-		return requestID
-	}
 	return fmt.Sprintf("req-%d", time.Now().UnixNano())
 }
 

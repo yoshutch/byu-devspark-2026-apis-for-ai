@@ -303,11 +303,6 @@ func authenticate(r *http.Request) (principal, bool) {
 }
 
 func getRequestID(r *http.Request) string {
-	// TODO: Remove X-Request-ID support after Demo 3; it is only a presenter
-	// correlation aid and is not part of the final API contract.
-	if requestID := strings.TrimSpace(r.Header.Get("X-Request-ID")); requestID != "" {
-		return requestID
-	}
 	return fmt.Sprintf("req-%d", time.Now().UnixNano())
 }
 

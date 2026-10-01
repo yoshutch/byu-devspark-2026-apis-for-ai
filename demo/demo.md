@@ -164,8 +164,6 @@ Show that documentation and explicit fields do not make an operation safe by the
 - Add fake bearer authentication and authorization.
 - Return `401`/`403` responses and record structured audit events.
 
-<!-- TODO: Remove X-Request-ID from these Demo 3 commands once the audit walkthrough no longer needs client-supplied correlation labels. -->
-
 The demo tokens are intentionally fake.
 
 ### Presenter setup
@@ -192,7 +190,6 @@ APPOINTMENT='{
    ```bash
    curl -i -X POST http://localhost:8080/advisement/appointments \
      --header 'Content-Type: application/json' \
-     --header 'X-Request-ID: req-no-auth' \
      --data "$APPOINTMENT"
    ```
 
@@ -205,7 +202,6 @@ APPOINTMENT='{
    curl -i -X POST http://localhost:8080/advisement/appointments \
      --header 'Authorization: Bearer demo-readonly' \
      --header 'Content-Type: application/json' \
-     --header 'X-Request-ID: req-readonly' \
      --data "$APPOINTMENT"
    ```
 
@@ -225,7 +221,6 @@ APPOINTMENT='{
    curl -i -X POST http://localhost:8080/advisement/appointments \
      --header 'Authorization: Bearer demo-student' \
      --header 'Content-Type: application/json' \
-     --header 'X-Request-ID: req-student' \
      --data "$APPOINTMENT"
    ```
 
