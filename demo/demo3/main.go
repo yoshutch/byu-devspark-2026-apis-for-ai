@@ -22,6 +22,7 @@ func main() {
 	defer db.close()
 
 	mux := http.NewServeMux()
+	registerProblemRoutes(mux)
 	mux.HandleFunc("POST /advisement/appointments", createAppointment(db))
 
 	port := os.Getenv("PORT")

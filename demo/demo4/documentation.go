@@ -31,14 +31,6 @@ func registerProblemRoutes(mux *http.ServeMux) {
 		Description: "The caller is authenticated but is not allowed to schedule this appointment.",
 		Resolution:  "Use an identity with scheduling permission and schedule only for the permitted student.",
 	}))
-	mux.HandleFunc("GET /problems/appointment-slot-unavailable", problemDocumentationHandler(problemDocumentation{
-		Type:        "/problems/appointment-slot-unavailable",
-		Title:       "Appointment slot unavailable",
-		Status:      http.StatusConflict,
-		Code:        "APPOINTMENT_SLOT_UNAVAILABLE",
-		Description: "The advisor already has an appointment at the requested time.",
-		Resolution:  "Ask the user to choose another time.",
-	}))
 }
 
 func problemDocumentationHandler(documentation problemDocumentation) http.HandlerFunc {

@@ -45,7 +45,7 @@ func createAppointment(db *database) http.HandlerFunc {
 		if !authenticated {
 			auditAppointmentAttempt(r, principal{}, requestID, "rejected", "authentication_required", http.StatusUnauthorized, "")
 			writeProblem(w, http.StatusUnauthorized, problemDetails{
-				Type:   "https://example.edu/problems/authentication-required",
+				Type:   problemTypeURL(r, "/problems/authentication-required"),
 				Title:  "Authentication required",
 				Status: http.StatusUnauthorized,
 				Code:   "AUTHENTICATION_REQUIRED",
@@ -57,7 +57,7 @@ func createAppointment(db *database) http.HandlerFunc {
 		if !caller.CanCreate {
 			auditAppointmentAttempt(r, caller, requestID, "rejected", "insufficient_permission", http.StatusForbidden, "")
 			writeProblem(w, http.StatusForbidden, problemDetails{
-				Type:   "https://example.edu/problems/appointment-not-permitted",
+				Type:   problemTypeURL(r, "/problems/appointment-not-permitted"),
 				Title:  "Appointment not permitted",
 				Status: http.StatusForbidden,
 				Code:   "APPOINTMENT_NOT_PERMITTED",
@@ -92,7 +92,7 @@ func createAppointment(db *database) http.HandlerFunc {
 		if caller.AllowedStudentID != "" && caller.AllowedStudentID != newAppointment.StudentID {
 			auditAppointmentAttempt(r, caller, requestID, "rejected", "appointment_for_another_student", http.StatusForbidden, "")
 			writeProblem(w, http.StatusForbidden, problemDetails{
-				Type:   "https://example.edu/problems/appointment-not-permitted",
+				Type:   problemTypeURL(r, "/problems/appointment-not-permitted"),
 				Title:  "Appointment not permitted",
 				Status: http.StatusForbidden,
 				Code:   "APPOINTMENT_NOT_PERMITTED",
