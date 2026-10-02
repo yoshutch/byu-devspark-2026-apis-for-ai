@@ -206,6 +206,7 @@ func createAppointment(db *database, config *demoConfig) http.HandlerFunc {
 			}
 		}
 
+		// Check to see if the slot has been taken or if it's available before proceeding
 		taken, err := db.slotTaken(newAppointment.AdvisorID, newAppointment.StartsAt)
 		if err != nil {
 			auditAppointmentAttempt(r, caller, requestID, "failed", "slot_check_error", http.StatusInternalServerError, "")
@@ -223,6 +224,7 @@ func createAppointment(db *database, config *demoConfig) http.HandlerFunc {
 			http.Error(w, "appointment slot is unavailable", http.StatusConflict)
 			return
 		}
+		// For demo purposes we'll simulate a delay to simulate a race condition after we already checked if the slot is open before saving
 		config.delayAfterSlotCheck()
 
 		id, err := db.save(newAppointment)
@@ -301,11 +303,8 @@ func auditAppointmentAttempt(r *http.Request, caller principal, requestID, outco
 	)
 }
 
-func nullableString(value string) *string {
-	if value == "" {
-		return nil
-	}
-	return &value
+func nullableString(value string) string {
+	return value
 }
 
 func authenticate(r *http.Request) (principal, bool) {

@@ -70,6 +70,7 @@ func newDatabase(path string) (*database, error) {
 		return nil, err
 	}
 
+	// Fixes the race condition by enforcing uniqueness at the database level
 	_, err = db.Exec(`
 		CREATE UNIQUE INDEX IF NOT EXISTS appointments_advisor_slot
 		ON appointments (advisor_id, starts_at)

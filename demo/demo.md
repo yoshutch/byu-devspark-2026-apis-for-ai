@@ -392,9 +392,9 @@ Show that idempotency does not solve concurrent business conflicts.
 
 An advisor cannot have two appointments in the same time slot.
 
-### Major code changes (optional presenter note)
+### Major code changes to try to enforce business rule (optional presenter note)
 
-- Enforce `(advisor_id, starts_at)` uniqueness in SQLite.
+- Enforce if the slot is open (see [demo code](demo5-start/appointments.go) around line 210)
 - Translate the losing request into an actionable `409` Problem Details response.
 
 ### Presenter setup
@@ -449,6 +449,9 @@ APPOINTMENT='{
 4. Show that two appointments were created for the same advisor and time. Ask:
 
    > Which request should win, and where should that rule be enforced?
+
+### Major changes for the fix
+- Enforce `(advisor_id, starts_at)` uniqueness in SQLite. (see [demo code](demo5-start/db.go) around line 73)
 
 ### Steps: fix
 
@@ -714,4 +717,4 @@ Show the original request beside the final request and ask:
 
 ### Transition
 
-Move to [17.md](../presentation/17.md) and use the checklist as the lasting takeaway.
+Move to [17.md](../presentation/17.md), then [18.md](../presentation/18.md), and use the checklist as the lasting takeaway.

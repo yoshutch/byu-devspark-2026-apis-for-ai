@@ -316,11 +316,8 @@ func auditAppointmentAttempt(r *http.Request, caller principal, requestID, outco
 	)
 }
 
-func nullableString(value string) *string {
-	if value == "" {
-		return nil
-	}
-	return &value
+func nullableString(value string) string {
+	return value
 }
 
 func authenticate(r *http.Request) (principal, bool) {
